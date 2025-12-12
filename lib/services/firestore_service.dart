@@ -113,7 +113,7 @@ class FirestoreService {
       'prepTimeMinutes': recipe.prepTimeMinutes,
       'cookTimeMinutes': recipe.cookTimeMinutes,
       'servings': recipe.servings,
-      'difficulty': recipe.difficulty,
+      'difficulty': recipe.difficulty.name,
       'category': recipe.category,
       'imageUrl': recipe.imageUrl,
       'notes': recipe.notes,
@@ -146,7 +146,12 @@ class FirestoreService {
     recipe.firestoreId = id;
     recipe.prepTimeMinutes = data['prepTimeMinutes'];
     recipe.cookTimeMinutes = data['cookTimeMinutes'];
-    recipe.difficulty = data['difficulty'];
+    recipe.difficulty = data['difficulty'] != null 
+        ? DifficultyLevel.values.firstWhere(
+            (e) => e.name == data['difficulty'],
+            orElse: () => DifficultyLevel.medium,
+          )
+        : DifficultyLevel.medium;
     recipe.category = data['category'];
     recipe.imageUrl = data['imageUrl'];
     recipe.notes = data['notes'];

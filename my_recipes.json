@@ -1,0 +1,195 @@
+[
+  {
+    "title": "Olive Garden Chicken Gnocchi Soup",
+    "description": "This copycat Olive Garden Chicken Gnocchi Soup is every bit as creamy and delicious as the restaurant version, made in less than 30 minutes!",
+    "prepTimeMinutes": 10,
+    "cookTimeMinutes": 20,
+    "servings": 4,
+    "category": "Main Course",
+    "cuisine": "Italian",
+    "tags": ["soup", "chicken", "gnocchi", "italian", "copycat"],
+    "isFavorite": false,
+    "ingredients": [
+      {"name": "boneless skinless chicken breasts, cooked and diced", "amount": "3-4", "unit": ""},
+      {"name": "celery, chopped", "amount": "1", "unit": "stalk"},
+      {"name": "white onion, diced", "amount": "0.5", "unit": ""},
+      {"name": "minced garlic", "amount": "2", "unit": "tsp"},
+      {"name": "shredded carrots", "amount": "0.5", "unit": "cup"},
+      {"name": "olive oil", "amount": "1", "unit": "tbsp"},
+      {"name": "low sodium chicken broth", "amount": "4", "unit": "cups"},
+      {"name": "salt and pepper", "amount": "to taste", "unit": ""},
+      {"name": "thyme", "amount": "1", "unit": "tsp"},
+      {"name": "potato gnocchi", "amount": "16", "unit": "oz"},
+      {"name": "half and half", "amount": "2", "unit": "cups"},
+      {"name": "fresh spinach, roughly chopped", "amount": "1", "unit": "cup"}
+    ],
+    "steps": [
+      {"stepNumber": 1, "instruction": "Heat olive oil in a large pot over medium heat. Add celery, onions, garlic, and carrots and saute for 2-3 minutes until onions are translucent."},
+      {"stepNumber": 2, "instruction": "Add chicken, chicken broth, salt, pepper, and thyme, bring to a boil, then gently stir in gnocchi. Boil for 3-4 minutes longer before reducing heat to a simmer and cooking for 10 minutes."},
+      {"stepNumber": 3, "instruction": "Stir in half and half and spinach and cook another 1-2 minutes until spinach is tender. Taste, add salt and pepper if needed, and serve."}
+    ]
+  },
+  {
+    "title": "No Bake Chocolate Peanut Butter Bars",
+    "description": "Delicious and healthy chocolate peanut butter bars made with simple ingredients like peanut butter, oats, honey and chocolate. These no bake chocolate peanut butter oatmeal bars are a great sweet snack or healthy dessert straight from the fridge. Easy and gluten-free!",
+    "prepTimeMinutes": 10,
+    "cookTimeMinutes": 0,
+    "servings": 12,
+    "category": "Dessert",
+    "cuisine": "American",
+    "tags": ["no-bake", "chocolate", "peanut butter", "healthy", "gluten-free", "bars"],
+    "isFavorite": false,
+    "ingredients": [
+      {"name": "natural peanut butter", "amount": "0.75", "unit": "cup"},
+      {"name": "honey", "amount": "0.33", "unit": "cup"},
+      {"name": "rolled oats (not quick oats)", "amount": "1.5", "unit": "cups"},
+      {"name": "semi-sweet chocolate chips", "amount": "1", "unit": "cup"},
+      {"name": "refined coconut oil", "amount": "1", "unit": "tbsp"},
+      {"name": "flaky sea salt (optional)", "amount": "to taste", "unit": ""}
+    ],
+    "steps": [
+      {"stepNumber": 1, "instruction": "Line a large loaf pan with parchment paper. In a mixing bowl, add peanut butter and honey. Mix to combine. Add rolled oats and mix again until well-combined."},
+      {"stepNumber": 2, "instruction": "Transfer the peanut butter oatmeal mixture to the lined loaf pan, spread and press down evenly with clean hands or a spatula."},
+      {"stepNumber": 3, "instruction": "Add chocolate chips and coconut oil to a microwave-safe bowl. Microwave in 30 second intervals, stirring in between, until chocolate is melted and smooth."},
+      {"stepNumber": 4, "instruction": "Pour chocolate mixture into loaf pan over the peanut butter layer. Spread evenly with a spatula. Sprinkle with flaky sea salt (optional) and place in the refrigerator to set for 2-3 hours, then cut into bars."},
+      {"stepNumber": 5, "instruction": "Bars will store well in refrigerator up to 1 week."}
+    ]
+  },
+  {
+    "title": "Honey Garlic Chicken",
+    "description": "This honey garlic chicken recipe has tender pan fried chicken breasts with a sticky sweet honey garlic glaze. It's fast and simple to make!",
+    "prepTimeMinutes": 10,
+    "cookTimeMinutes": 20,
+    "servings": 8,
+    "category": "Main Course",
+    "cuisine": "American",
+    "tags": ["chicken", "honey garlic", "quick", "dinner"],
+    "isFavorite": false,
+    "ingredients": [
+      {"name": "chicken breasts, cut in half lengthwise", "amount": "4", "unit": ""},
+      {"name": "salt and pepper", "amount": "to taste", "unit": ""},
+      {"name": "olive oil", "amount": "2", "unit": "tbsp"},
+      {"name": "butter", "amount": "2", "unit": "tbsp"},
+      {"name": "chopped scallions (optional)", "amount": "to taste", "unit": ""},
+      {"name": "low sodium soy sauce", "amount": "6", "unit": "tbsp"},
+      {"name": "honey", "amount": "0.5", "unit": "cup"},
+      {"name": "chicken broth", "amount": "0.5", "unit": "cup"},
+      {"name": "lemon juice or apple cider vinegar", "amount": "1", "unit": "tbsp"},
+      {"name": "garlic, minced", "amount": "8", "unit": "cloves"},
+      {"name": "cornstarch", "amount": "2", "unit": "tbsp"}
+    ],
+    "steps": [
+      {"stepNumber": 1, "instruction": "Preheat your oven to 400F and move the rack to the top third of the oven."},
+      {"stepNumber": 2, "instruction": "Add the sauce ingredients (soy sauce, honey, chicken broth, lemon juice, garlic, and cornstarch) to a small bowl and whisk them together. Set aside."},
+      {"stepNumber": 3, "instruction": "Cut the chicken breasts in half lengthwise so you have 8 thinner pieces. Season them with salt and pepper."},
+      {"stepNumber": 4, "instruction": "Add the oil and butter to an oven-proof skillet over medium-high heat. Let the skillet heat up for a few minutes."},
+      {"stepNumber": 5, "instruction": "Cook the chicken for 4-5 minutes per side until golden."},
+      {"stepNumber": 6, "instruction": "Give the sauce another quick whisk and then pour it into the skillet in between the chicken pieces. Let it bubble for 30 seconds, then take the pan off the heat. Quickly spoon some sauce over the chicken and then place the skillet in the oven for 4-5 minutes or until the chicken is cooked through (165F) and the sauce thickens up a little more."},
+      {"stepNumber": 7, "instruction": "Serve immediately, spooning more sauce over top and adding the chopped scallions if desired."}
+    ]
+  },
+  {
+    "title": "One-Pot Garlic Parmesan Pasta with Spinach and Mushrooms",
+    "description": "Super quick and delicious, this creamy pasta recipe features creamy parmesan sauce, sauteed mushrooms, onion, and spinach. You can do it in less than 30 minutes!",
+    "prepTimeMinutes": 10,
+    "cookTimeMinutes": 20,
+    "servings": 4,
+    "category": "Main Course",
+    "cuisine": "Italian",
+    "tags": ["pasta", "vegetarian", "one-pot", "mushrooms", "spinach"],
+    "isFavorite": false,
+    "ingredients": [
+      {"name": "farfalle pasta", "amount": "14", "unit": "oz"},
+      {"name": "olive oil", "amount": "3", "unit": "tbsp"},
+      {"name": "onions, sliced", "amount": "2", "unit": "medium"},
+      {"name": "garlic, minced", "amount": "3-4", "unit": "cloves"},
+      {"name": "mushrooms, sliced", "amount": "14", "unit": "oz"},
+      {"name": "fresh spinach", "amount": "10", "unit": "oz"},
+      {"name": "low-sodium vegetable broth", "amount": "0.5", "unit": "cup"},
+      {"name": "fresh cracked pepper", "amount": "to taste", "unit": ""},
+      {"name": "Italian seasoning", "amount": "1", "unit": "tsp"},
+      {"name": "parmesan cheese, grated", "amount": "0.5", "unit": "cup"},
+      {"name": "heavy whipping cream", "amount": "0.5", "unit": "cup"},
+      {"name": "red chili pepper flakes (optional)", "amount": "1", "unit": "tsp"}
+    ],
+    "steps": [
+      {"stepNumber": 1, "instruction": "Cook the pasta in salted water until al dente, according to the package instructions."},
+      {"stepNumber": 2, "instruction": "Heat 1 tablespoon olive oil in a large skillet. Add the onion and saute for 2-3 minutes until translucent and slightly browned. Remove from the skillet and transfer to a plate."},
+      {"stepNumber": 3, "instruction": "In the same skillet, add the mushrooms and sauté for about 3 minutes until browned. Remove mushrooms to the plate with onion and set aside."},
+      {"stepNumber": 4, "instruction": "In the same skillet, add the spinach and cook for 2 minutes until just wilted. Adjust seasoning with salt and pepper. Remove spinach and drain excess water. Transfer to another plate."},
+      {"stepNumber": 5, "instruction": "Still in the same skillet, heat a little oil, add the chopped garlic and cook for about 30 seconds, then deglaze with vegetable broth. Add cream, grated parmesan, chili pepper flakes, and Italian seasoning and cook for 2 minutes, stirring until combined."},
+      {"stepNumber": 6, "instruction": "Add mushrooms, onion, and spinach back to the skillet, then add drained pasta and toss to combine. Add more parmesan and Italian seasoning and give a quick stir. Serve with red chili pepper flakes and more parmesan, if you like."}
+    ]
+  },
+  {
+    "title": "Apple Crisp Oat Bars",
+    "description": "These apple crisp oat bars feature a thick layer of spiced apples sandwiched between two layers of sweet cinnamon oatmeal crumble crust for the ultimate dessert, snack, or coffee companion!",
+    "prepTimeMinutes": 15,
+    "cookTimeMinutes": 45,
+    "servings": 15,
+    "category": "Dessert",
+    "cuisine": "American",
+    "tags": ["apple", "oat bars", "dessert", "baking", "cinnamon"],
+    "isFavorite": false,
+    "ingredients": [
+      {"name": "flour", "amount": "1.5", "unit": "cups"},
+      {"name": "quick cooking oatmeal", "amount": "3", "unit": "cups"},
+      {"name": "cinnamon", "amount": "1", "unit": "tbsp"},
+      {"name": "brown sugar, lightly packed", "amount": "1.25", "unit": "cups"},
+      {"name": "butter, melted", "amount": "1.25", "unit": "cups"},
+      {"name": "apples, peeled and diced", "amount": "2", "unit": "lbs"},
+      {"name": "granulated sugar", "amount": "2", "unit": "tbsp"},
+      {"name": "lemon juice", "amount": "1", "unit": "tbsp"},
+      {"name": "cornstarch", "amount": "1", "unit": "tbsp"},
+      {"name": "vanilla extract", "amount": "1", "unit": "tsp"},
+      {"name": "cinnamon (for apples)", "amount": "1", "unit": "tsp"}
+    ],
+    "steps": [
+      {"stepNumber": 1, "instruction": "Preheat oven to 350F. Grease a 9x13 baking dish."},
+      {"stepNumber": 2, "instruction": "Prepare oatmeal crust by stirring together flour, oatmeal, cinnamon, and brown sugar. Drizzle melted butter over top and mix until thoroughly combined."},
+      {"stepNumber": 3, "instruction": "Prepare apple mixture by tossing apples with sugar, lemon juice, cornstarch, vanilla, and cinnamon."},
+      {"stepNumber": 4, "instruction": "Firmly press down oatmeal crust mixture onto bottom of prepared pan, reserving roughly 1.5 cups for the topping."},
+      {"stepNumber": 5, "instruction": "Spread apples on top, then sprinkle the remaining oatmeal crust mixture over the apples."},
+      {"stepNumber": 6, "instruction": "Bake in preheated oven 45 minutes, or until apples are soft and topping is golden brown. Allow to cool before slicing into squares and serving."}
+    ]
+  },
+  {
+    "title": "White Cheddar Chicken Pasta",
+    "description": "This is a delicious cheese chicken pasta recipe for your lunch or dinner with a creamy white cheddar sauce.",
+    "prepTimeMin": 10,
+    "cookTimeMinutes": 25,
+    "servings": 6,
+    "category": "Side Dish",
+    "cuisine": "American",
+    "tags": ["pasta", "chicken", "white cheddar", "creamy", "dinner"],
+    "isFavorite": false,
+    "ingredients": [
+      {"name": "chicken breasts, skinless and boneless", "amount": "2", "unit": ""},
+      {"name": "olive oil", "amount": "1.5", "unit": "tbsp"},
+      {"name": "dry mustard", "amount": "1", "unit": "tsp"},
+      {"name": "dried thyme", "amount": "0.5", "unit": "tsp"},
+      {"name": "dried oregano", "amount": "0.5", "unit": "tsp"},
+      {"name": "salt and pepper", "amount": "to taste", "unit": ""},
+      {"name": "short-cut pasta", "amount": "1", "unit": "lb"},
+      {"name": "butter", "amount": "2", "unit": "tbsp"},
+      {"name": "all-purpose flour", "amount": "2", "unit": "tbsp"},
+      {"name": "garlic, minced", "amount": "2", "unit": "cloves"},
+      {"name": "yellow onion, diced", "amount": "1", "unit": ""},
+      {"name": "dry white wine", "amount": "0.25", "unit": "cup"},
+      {"name": "Dijon mustard", "amount": "1", "unit": "tbsp"},
+      {"name": "white cheddar cheese, grated", "amount": "8", "unit": "oz"},
+      {"name": "whole milk", "amount": "2", "unit": "cups"},
+      {"name": "fresh thyme", "amount": "1-2", "unit": "tbsp"},
+      {"name": "crushed red pepper flakes", "amount": "1", "unit": "tsp"}
+    ],
+    "steps": [
+      {"stepNumber": 1, "instruction": "In a small bowl, combine dry mustard, dried thyme, dried oregano, salt, and freshly ground black pepper. Set aside."},
+      {"stepNumber": 2, "instruction": "Slice chicken breasts into thin strips or cut into 1-inch cubes. Sprinkle with seasoning mixture."},
+      {"stepNumber": 3, "instruction": "In a large skillet, heat olive oil, and cook chicken for a few minutes or until cooked and browned. Transfer cooked chicken to a plate. Set aside."},
+      {"stepNumber": 4, "instruction": "Fill a large pot with water and bring to a boil. Add salt and pasta. Cook according to the package directions until al dente. Drain and set aside."},
+      {"stepNumber": 5, "instruction": "Melt butter in the same skillet in which you cooked chicken. When melted, add all-purpose flour and mix it together. Then, add dry white wine, minced garlic, diced onions, and Dijon mustard. Mix to combine. Cook for 3-5 minutes or until onions soften."},
+      {"stepNumber": 6, "instruction": "Slowly pour milk in a few additions. Stir after each addition. Cook on low for 4-6 minutes or until thickened. Then, add shredded white cheddar cheese. Mix and cook until melted."},
+      {"stepNumber": 7, "instruction": "Finally, add cooked chicken and pasta. Mix until completely covered with creamy and cheesy sauce. Serve immediately. Sprinkle with fresh thyme, crushed red pepper flakes, or smoked paprika."}
+    ]
+  }
+]
