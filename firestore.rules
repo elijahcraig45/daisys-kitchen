@@ -1,0 +1,64 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth != null && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+    
+    // Users collection - users can read/write their own profile
+    match /users/{userId} {
+      allow read: if true; // Public can view user profiles
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Recipes collection - public read, signed-in users can write
+    match /recipes/{recipeId} {
+      // Anyone can read recipes (public viewing)
+      allow read: if true;
+      
+      // Signed-in users can create recipes (must set createdBy to their UID)
+      allow create: if request.auth != null && 
+                       request.resource.data.createdBy == request.auth.uid;
+      
+      // Signed-in users can update any recipe
+      allow update: if request.auth != null;
+      
+      // Users can delete their own recipes, admins can delete any
+      allow delete: if request.auth != null && 
+                       (resource.data.createdBy == request.auth.uid || isAdmin());
+    }
+    
+    // Comments collection (for future implementation)
+    match /recipes/{recipeId}/comments/{commentId} {
+      // Anyone can read comments
+      allow read: if true;
+      
+      // Signed-in users can create comments
+      allow create: if request.auth != null;
+      
+      // Users can update/delete their own comments, admins can delete any
+      allow update: if request.auth != null && 
+                       request.auth.uid == resource.data.userId;
+      allow delete: if (request.auth != null && request.auth.uid == resource.data.userId) ||
+                       isAdmin();
+    }
+    
+    // Ratings collection (for future implementation)
+    match /recipes/{recipeId}/ratings/{ratingId} {
+      // Anyone can read ratings
+      allow read: if true;
+      
+      // Signed-in users can create/update their own ratings
+      allow create: if request.auth != null && ratingId == request.auth.uid;
+      allow update: if request.auth != null && ratingId == request.auth.uid;
+      
+      // Users can delete their own ratings
+      allow delete: if request.auth != null && ratingId == request.auth.uid;
+    }
+  }
+}

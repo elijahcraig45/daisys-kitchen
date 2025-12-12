@@ -1,0 +1,185 @@
+{
+  "version": "1.0",
+  "exportDate": "2025-12-12T12:00:00.000Z",
+  "recipes": [
+    {
+      "title": "Classic Spaghetti Carbonara",
+      "description": "A traditional Italian pasta dish with eggs, cheese, and pancetta. Simple yet elegant! This authentic Roman recipe creates a silky, creamy sauce without any cream.",
+      "imageUrl": "https://images.unsplash.com/photo-1612874742237-6526221588e3?w=800",
+      "servings": 4,
+      "prepTimeMinutes": 10,
+      "cookTimeMinutes": 20,
+      "difficulty": "medium",
+      "category": "Main Course",
+      "cuisine": "Italian",
+      "tags": ["pasta", "italian", "comfort-food", "quick"],
+      "ingredients": [
+        {
+          "name": "Spaghetti",
+          "amount": "400",
+          "unit": "g"
+        },
+        {
+          "name": "Pancetta or Guanciale",
+          "amount": "200",
+          "unit": "g"
+        },
+        {
+          "name": "Eggs",
+          "amount": "4",
+          "unit": "whole"
+        },
+        {
+          "name": "Pecorino Romano cheese",
+          "amount": "100",
+          "unit": "g"
+        },
+        {
+          "name": "Black pepper",
+          "amount": "1",
+          "unit": "tsp"
+        },
+        {
+          "name": "Salt",
+          "amount": "to taste",
+          "unit": ""
+        }
+      ],
+      "steps": [
+        {
+          "stepNumber": 1,
+          "instruction": "Bring a large pot of salted water to boil."
+        },
+        {
+          "stepNumber": 2,
+          "instruction": "Cut pancetta into small cubes and cook in a large pan over medium heat until crispy.",
+          "timerSeconds": 420,
+          "timerLabel": "Cook pancetta"
+        },
+        {
+          "stepNumber": 3,
+          "instruction": "Cook spaghetti according to package directions until al dente.",
+          "timerSeconds": 600,
+          "timerLabel": "Cook pasta"
+        },
+        {
+          "stepNumber": 4,
+          "instruction": "While pasta cooks, whisk together eggs, grated cheese, and black pepper in a bowl."
+        },
+        {
+          "stepNumber": 5,
+          "instruction": "Reserve 1 cup of pasta water, then drain the spaghetti."
+        },
+        {
+          "stepNumber": 6,
+          "instruction": "Add hot pasta to the pan with pancetta. Remove from heat. Quickly mix in the egg mixture, adding pasta water as needed to create a creamy sauce."
+        },
+        {
+          "stepNumber": 7,
+          "instruction": "Serve immediately with extra cheese and black pepper on top."
+        }
+      ],
+      "notes": "The key is to work quickly when adding the egg mixture to prevent scrambling. The residual heat from the pasta will cook the eggs perfectly.",
+      "isFavorite": false
+    },
+    {
+      "title": "Chocolate Chip Cookies",
+      "description": "Classic homemade chocolate chip cookies that are crispy on the outside and chewy on the inside. Perfect with a glass of cold milk!",
+      "imageUrl": "https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=800",
+      "servings": 24,
+      "prepTimeMinutes": 15,
+      "cookTimeMinutes": 12,
+      "difficulty": "easy",
+      "category": "Dessert",
+      "cuisine": "American",
+      "tags": ["cookies", "dessert", "baking", "chocolate", "kid-friendly"],
+      "ingredients": [
+        {
+          "name": "All-purpose flour",
+          "amount": "2 1/4",
+          "unit": "cups"
+        },
+        {
+          "name": "Butter, softened",
+          "amount": "1",
+          "unit": "cup"
+        },
+        {
+          "name": "Granulated sugar",
+          "amount": "3/4",
+          "unit": "cup"
+        },
+        {
+          "name": "Brown sugar",
+          "amount": "3/4",
+          "unit": "cup"
+        },
+        {
+          "name": "Eggs",
+          "amount": "2",
+          "unit": "whole"
+        },
+        {
+          "name": "Vanilla extract",
+          "amount": "1",
+          "unit": "tsp"
+        },
+        {
+          "name": "Baking soda",
+          "amount": "1",
+          "unit": "tsp"
+        },
+        {
+          "name": "Salt",
+          "amount": "1",
+          "unit": "tsp"
+        },
+        {
+          "name": "Chocolate chips",
+          "amount": "2",
+          "unit": "cups"
+        }
+      ],
+      "steps": [
+        {
+          "stepNumber": 1,
+          "instruction": "Preheat oven to 375°F (190°C)."
+        },
+        {
+          "stepNumber": 2,
+          "instruction": "In a large bowl, cream together butter and both sugars until fluffy."
+        },
+        {
+          "stepNumber": 3,
+          "instruction": "Beat in eggs one at a time, then stir in vanilla."
+        },
+        {
+          "stepNumber": 4,
+          "instruction": "In a separate bowl, combine flour, baking soda, and salt. Gradually blend into the butter mixture."
+        },
+        {
+          "stepNumber": 5,
+          "instruction": "Fold in chocolate chips."
+        },
+        {
+          "stepNumber": 6,
+          "instruction": "Drop rounded tablespoons of dough onto ungreased cookie sheets, 2 inches apart."
+        },
+        {
+          "stepNumber": 7,
+          "instruction": "Bake until golden brown around the edges.",
+          "timerSeconds": 660,
+          "timerLabel": "Bake cookies"
+        },
+        {
+          "stepNumber": 8,
+          "instruction": "Cool on baking sheet for 2 minutes before transferring to a wire rack.",
+          "timerSeconds": 120,
+          "timerLabel": "Cool"
+        }
+      ],
+      "notes": "For chewier cookies, slightly underbake them. Store in an airtight container for up to a week.",
+      "isFavorite": false
+    }
+  ]
+}
