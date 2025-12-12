@@ -142,7 +142,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 value: 'import',
                 child: Row(
                   children: [
-                    Icon(Icons.file_upload),
+                    Icon(Icons.file_download),
                     SizedBox(width: 8),
                     Text('Import Recipes'),
                   ],
@@ -152,7 +152,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 value: 'export',
                 child: Row(
                   children: [
-                    Icon(Icons.file_download),
+                    Icon(Icons.file_upload),
                     SizedBox(width: 8),
                     Text('Export All'),
                   ],
