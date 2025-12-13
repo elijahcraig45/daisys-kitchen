@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:recipe_keeper/models/ingredient.dart';
 import 'package:recipe_keeper/models/recipe.dart';
 import 'package:recipe_keeper/providers/firebase_providers.dart';
 
@@ -30,26 +31,35 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     setState(() => _isLoading = true);
     final firestoreService = ref.read(firestoreServiceProvider);
     final recipe = await firestoreService.getRecipeById(widget.recipeId);
-    if (mounted) setState(() { _currentRecipe = recipe; _isLoading = false; });
+    if (mounted)
+      setState(() {
+        _currentRecipe = recipe;
+        _isLoading = false;
+      });
   }
 
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(appBar: AppBar(), body: const Center(child: CircularProgressIndicator()));
+      return Scaffold(
+          appBar: AppBar(),
+          body: const Center(child: CircularProgressIndicator()));
     }
 
     if (_currentRecipe == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Not Found')),
-        body: Center(child: ElevatedButton(onPressed: () => context.go('/'), child: const Text('Back'))),
+        body: Center(
+            child: ElevatedButton(
+                onPressed: () => context.go('/'), child: const Text('Back'))),
       );
     }
 
     final recipe = _currentRecipe!;
     final theme = Theme.of(context);
-    final totalTime = (recipe.prepTimeMinutes ?? 0) + (recipe.cookTimeMinutes ?? 0);
-    
+    final totalTime =
+        (recipe.prepTimeMinutes ?? 0) + (recipe.cookTimeMinutes ?? 0);
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -73,7 +83,8 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                           fit: BoxFit.cover,
                           placeholder: (context, url) => Container(
                             color: theme.colorScheme.surfaceContainerHighest,
-                            child: const Center(child: CircularProgressIndicator()),
+                            child: const Center(
+                                child: CircularProgressIndicator()),
                           ),
                           errorWidget: (context, url, error) => Container(
                             color: theme.colorScheme.surfaceContainerHighest,
@@ -88,7 +99,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                               end: Alignment.bottomCenter,
                               colors: [
                                 Colors.transparent,
-                                Colors.black.withOpacity(0.7),
+                                Colors.black.withValues(alpha: 0.7),
                               ],
                             ),
                           ),
@@ -112,11 +123,14 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                   recipe.isFavorite ? Icons.favorite : Icons.favorite_border,
                   color: recipe.isFavorite ? Colors.red : null,
                 ),
-                tooltip: recipe.isFavorite ? 'Remove from favorites' : 'Add to favorites',
+                tooltip: recipe.isFavorite
+                    ? 'Remove from favorites'
+                    : 'Add to favorites',
                 onPressed: () async {
                   if (recipe.firestoreId == null) return;
                   final firestoreService = ref.read(firestoreServiceProvider);
-                  await firestoreService.toggleFavorite(recipe.firestoreId!, !recipe.isFavorite);
+                  await firestoreService.toggleFavorite(
+                      recipe.firestoreId!, !recipe.isFavorite);
                   await _loadRecipe();
                 },
               ),
@@ -159,7 +173,8 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                       context: context,
                       builder: (c) => AlertDialog(
                         title: const Text('Delete Recipe'),
-                        content: Text('Are you sure you want to delete "${recipe.title}"?'),
+                        content: Text(
+                            'Are you sure you want to delete "${recipe.title}"?'),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(c, false),
@@ -175,17 +190,22 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                         ],
                       ),
                     );
-                    if (conf == true && mounted) {
-                      final firestoreService = ref.read(firestoreServiceProvider);
+                    if (conf == true) {
+                      if (!mounted) return;
+                      // ignore: use_build_context_synchronously
+                      final router = GoRouter.of(context);
+                      final firestoreService =
+                          ref.read(firestoreServiceProvider);
                       await firestoreService.deleteRecipe(recipe.firestoreId!);
-                      if (mounted) context.go('/');
+                      if (!mounted) return;
+                      router.go('/');
                     }
                   }
                 },
               ),
             ],
           ),
-          
+
           // Content
           SliverToBoxAdapter(
             child: Padding(
@@ -225,16 +245,18 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                       ),
                     ],
                   ),
-                  
+
                   if (totalTime > 0) ...[
                     const SizedBox(height: 8),
                     Card(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.access_time, size: 20, color: theme.colorScheme.primary),
+                            Icon(Icons.access_time,
+                                size: 20, color: theme.colorScheme.primary),
                             const SizedBox(width: 8),
                             Text(
                               'Total: ${totalTime}m',
@@ -248,9 +270,9 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                       ),
                     ),
                   ],
-                  
+
                   const SizedBox(height: 16),
-                  
+
                   // Metadata chips
                   Wrap(
                     spacing: 8,
@@ -269,7 +291,8 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        backgroundColor: _getDifficultyColor(recipe.difficulty).withOpacity(0.1),
+                        backgroundColor: _getDifficultyColor(recipe.difficulty)
+                            .withValues(alpha: 0.1),
                       ),
                       if (recipe.category != null)
                         Chip(
@@ -283,9 +306,9 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                         ),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // Description
                   if (recipe.description.isNotEmpty) ...[
                     Text(
@@ -294,14 +317,15 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                     ),
                     const SizedBox(height: 24),
                   ],
-                  
+
                   // Tags
                   if (recipe.tags != null && recipe.tags!.isNotEmpty) ...[
                     const Divider(),
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        Icon(Icons.local_offer, size: 20, color: theme.colorScheme.secondary),
+                        Icon(Icons.local_offer,
+                            size: 20, color: theme.colorScheme.secondary),
                         const SizedBox(width: 8),
                         Text(
                           'Tags',
@@ -315,21 +339,25 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: recipe.tags!.map((tag) => Chip(
-                        label: Text(tag),
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        labelStyle: const TextStyle(fontSize: 12),
-                      )).toList(),
+                      children: recipe.tags!
+                          .map((tag) => Chip(
+                                label: Text(tag),
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                                labelStyle: const TextStyle(fontSize: 12),
+                              ))
+                          .toList(),
                     ),
                     const SizedBox(height: 24),
                   ],
-                  
+
                   // Ingredients
                   const Divider(),
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      Icon(Icons.shopping_basket, size: 24, color: theme.colorScheme.primary),
+                      Icon(Icons.shopping_basket,
+                          size: 24, color: theme.colorScheme.primary),
                       const SizedBox(width: 12),
                       Text(
                         'Ingredients',
@@ -352,9 +380,11 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                       padding: const EdgeInsets.all(16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: recipe.ingredients.asMap().entries.map((entry) {
+                        children:
+                            recipe.ingredients.asMap().entries.map((entry) {
                           final i = entry.value;
-                          final isLast = entry.key == recipe.ingredients.length - 1;
+                          final isLast =
+                              entry.key == recipe.ingredients.length - 1;
                           return Padding(
                             padding: EdgeInsets.only(bottom: isLast ? 0 : 12),
                             child: Row(
@@ -368,7 +398,8 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
-                                    '${i.amount} ${i.unit} ${i.name}',
+                                    '${_formatIngredientAmount(i)} ${i.name}'
+                                        .trim(),
                                     style: theme.textTheme.bodyLarge,
                                   ),
                                 ),
@@ -379,15 +410,16 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                       ),
                     ),
                   ),
-                  
+
                   const SizedBox(height: 32),
-                  
+
                   // Instructions
                   const Divider(),
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      Icon(Icons.format_list_numbered, size: 24, color: theme.colorScheme.primary),
+                      Icon(Icons.format_list_numbered,
+                          size: 24, color: theme.colorScheme.primary),
                       const SizedBox(width: 12),
                       Text(
                         'Instructions',
@@ -406,6 +438,15 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                   ),
                   const SizedBox(height: 16),
                   ...recipe.steps.map((step) {
+                    final displayTitle = step.title.isNotEmpty
+                        ? step.title
+                        : 'Step ${step.stepNumber}';
+                    final hasDescription = step.description != null &&
+                        step.description!.trim().isNotEmpty;
+                    final timerMinutes = step.timerSeconds != null
+                        ? step.timerSeconds! ~/ 60
+                        : null;
+                    final stepIngredients = step.ingredientsForStep ?? [];
                     return Card(
                       margin: const EdgeInsets.only(bottom: 16),
                       child: Padding(
@@ -415,7 +456,8 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                           children: [
                             CircleAvatar(
                               radius: 20,
-                              backgroundColor: theme.colorScheme.primaryContainer,
+                              backgroundColor:
+                                  theme.colorScheme.primaryContainer,
                               child: Text(
                                 '${step.stepNumber}',
                                 style: TextStyle(
@@ -430,11 +472,44 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    step.instruction,
-                                    style: theme.textTheme.bodyLarge?.copyWith(height: 1.5),
+                                    displayTitle,
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.bold),
                                   ),
-                                  if (step.timerSeconds != null) ...[
+                                  if (hasDescription) ...[
                                     const SizedBox(height: 8),
+                                    Text(
+                                      step.description!,
+                                      style: theme.textTheme.bodyLarge
+                                          ?.copyWith(height: 1.5),
+                                    ),
+                                  ],
+                                  if (stepIngredients.isNotEmpty) ...[
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      'Ingredients for this step',
+                                      style:
+                                          theme.textTheme.bodyMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 6,
+                                      children:
+                                          stepIngredients.map((ingredient) {
+                                        return Chip(
+                                          label: Text(
+                                            '${_formatIngredientAmount(ingredient)} ${ingredient.name}'
+                                                .trim(),
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ],
+                                  if (timerMinutes != null) ...[
+                                    const SizedBox(height: 12),
                                     Row(
                                       children: [
                                         Icon(
@@ -444,8 +519,9 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
-                                          '${(step.timerSeconds! / 60).round()} minutes',
-                                          style: theme.textTheme.bodyMedium?.copyWith(
+                                          '$timerMinutes minutes${step.timerLabel != null ? ' · ${step.timerLabel}' : ''}',
+                                          style: theme.textTheme.bodyMedium
+                                              ?.copyWith(
                                             color: theme.colorScheme.secondary,
                                             fontWeight: FontWeight.w500,
                                           ),
@@ -453,6 +529,14 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                                       ],
                                     ),
                                   ],
+                                  if (!hasDescription &&
+                                      stepIngredients.isEmpty &&
+                                      timerMinutes == null)
+                                    Text(
+                                      'No additional details for this step.',
+                                      style: theme.textTheme.bodyLarge
+                                          ?.copyWith(height: 1.5),
+                                    ),
                                 ],
                               ),
                             ),
@@ -461,14 +545,15 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                       ),
                     );
                   }),
-                  
+
                   // Notes
                   if (recipe.notes != null && recipe.notes!.isNotEmpty) ...[
                     const Divider(),
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        Icon(Icons.note, size: 20, color: theme.colorScheme.secondary),
+                        Icon(Icons.note,
+                            size: 20, color: theme.colorScheme.secondary),
                         const SizedBox(width: 8),
                         Text(
                           'Chef\'s Notes',
@@ -480,7 +565,8 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                     ),
                     const SizedBox(height: 12),
                     Card(
-                      color: theme.colorScheme.secondaryContainer.withOpacity(0.3),
+                      color: theme.colorScheme.secondaryContainer
+                          .withValues(alpha: 0.3),
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Text(
@@ -492,7 +578,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                       ),
                     ),
                   ],
-                  
+
                   const SizedBox(height: 80), // Space for FAB
                 ],
               ),
@@ -501,14 +587,15 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/recipe/${recipe.id}/cook', extra: recipe),
+        onPressed: () =>
+            context.push('/recipe/${recipe.id}/cook', extra: recipe),
         icon: const Icon(Icons.restaurant_menu),
         label: const Text('Start Cooking'),
         heroTag: 'cook_button',
       ),
     );
   }
-  
+
   Color _getDifficultyColor(DifficultyLevel difficulty) {
     switch (difficulty) {
       case DifficultyLevel.easy:
@@ -518,6 +605,34 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
       case DifficultyLevel.hard:
         return Colors.red;
     }
+  }
+
+  String _formatAmountUnit(String amount, String? unit) {
+    final trimmedAmount = amount.trim();
+    final trimmedUnit = unit?.trim() ?? '';
+    if (trimmedAmount.isEmpty && trimmedUnit.isEmpty) {
+      return '';
+    }
+    if (trimmedUnit.isEmpty) return trimmedAmount;
+    if (trimmedAmount.isEmpty) return trimmedUnit;
+    return '$trimmedAmount $trimmedUnit';
+  }
+
+  String _formatIngredientAmount(Ingredient ingredient) {
+    final primary = _formatAmountUnit(ingredient.amount, ingredient.unit);
+    final hasSecondary = ingredient.secondaryAmount != null &&
+        ingredient.secondaryAmount!.trim().isNotEmpty;
+    if (hasSecondary) {
+      final secondary = _formatAmountUnit(
+        ingredient.secondaryAmount!,
+        ingredient.secondaryUnit,
+      );
+      if (secondary.isNotEmpty) {
+        if (primary.isEmpty) return secondary;
+        return '$primary ($secondary)';
+      }
+    }
+    return primary;
   }
 }
 

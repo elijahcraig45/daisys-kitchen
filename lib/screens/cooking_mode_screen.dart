@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:recipe_keeper/models/recipe.dart';
 import 'package:recipe_keeper/models/recipe_step.dart';
+import 'package:recipe_keeper/models/ingredient.dart';
 
 class CookingModeScreen extends StatefulWidget {
   final Recipe recipe;
@@ -26,7 +27,7 @@ class _CookingModeScreenState extends State<CookingModeScreen> {
   void initState() {
     super.initState();
     _pageController = PageController();
-    
+
     // Initialize timer states
     for (var step in widget.recipe.steps) {
       if (step.timerSeconds != null && step.timerSeconds! > 0) {
@@ -74,7 +75,8 @@ class _CookingModeScreenState extends State<CookingModeScreen> {
 
   void _resetTimer(int stepNumber) {
     _timers[stepNumber]?.cancel();
-    final step = widget.recipe.steps.firstWhere((s) => s.stepNumber == stepNumber);
+    final step =
+        widget.recipe.steps.firstWhere((s) => s.stepNumber == stepNumber);
     setState(() {
       _remainingSeconds[stepNumber] = step.timerSeconds!;
       _timerRunning[stepNumber] = false;
@@ -152,17 +154,26 @@ class _CookingModeScreenState extends State<CookingModeScreen> {
               radius: 32,
               child: Text(
                 '${step.stepNumber}',
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                style:
+                    const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
             ),
           ),
           const SizedBox(height: 24),
           Text(
-            step.instruction,
+            step.title.isNotEmpty ? step.title : 'Step ${step.stepNumber}',
             style: Theme.of(context).textTheme.headlineSmall,
           ),
+          if (step.description != null &&
+              step.description!.trim().isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              step.description!,
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          ],
           const SizedBox(height: 24),
-          if (step.ingredientsForStep != null && 
+          if (step.ingredientsForStep != null &&
               step.ingredientsForStep!.isNotEmpty) ...[
             Text(
               'Ingredients for this step:',
@@ -179,7 +190,7 @@ class _CookingModeScreenState extends State<CookingModeScreen> {
                     const Icon(Icons.circle, size: 8),
                     const SizedBox(width: 12),
                     Text(
-                      '${ingredient.amount} ${ingredient.unit} ${ingredient.name}',
+                      _formatIngredientDisplay(ingredient),
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                   ],
@@ -193,6 +204,37 @@ class _CookingModeScreenState extends State<CookingModeScreen> {
         ],
       ),
     );
+  }
+
+  String _formatIngredientDisplay(Ingredient ingredient) {
+    final primary = _formatAmountUnit(ingredient.amount, ingredient.unit);
+    final secondary = ingredient.secondaryAmount != null &&
+            ingredient.secondaryAmount!.trim().isNotEmpty
+        ? _formatAmountUnit(
+            ingredient.secondaryAmount!, ingredient.secondaryUnit)
+        : '';
+    final buffer = StringBuffer();
+    if (primary.isNotEmpty) {
+      buffer.write(primary);
+    }
+    if (secondary.isNotEmpty) {
+      if (buffer.isNotEmpty) buffer.write(' ');
+      buffer.write('($secondary)');
+    }
+    if (buffer.isNotEmpty) buffer.write(' ');
+    buffer.write(ingredient.name);
+    return buffer.toString().trim();
+  }
+
+  String _formatAmountUnit(String amount, String? unit) {
+    final trimmedAmount = amount.trim();
+    final trimmedUnit = unit?.trim() ?? '';
+    if (trimmedAmount.isEmpty && trimmedUnit.isEmpty) {
+      return '';
+    }
+    if (trimmedUnit.isEmpty) return trimmedAmount;
+    if (trimmedAmount.isEmpty) return trimmedUnit;
+    return '$trimmedAmount $trimmedUnit';
   }
 
   Widget _buildTimerSection(RecipeStep step) {

@@ -5,8 +5,12 @@
     "rules": "firestore.rules",
     "indexes": "N"
   },
+  "functions": {
+    "source": "functions"
+  },
   "hosting": {
-    "public": "server/build/web",
+    "site": "recipe-f644f",
+    "public": "build/web",
     "ignore": [
       "firebase.json",
       "**/.*",

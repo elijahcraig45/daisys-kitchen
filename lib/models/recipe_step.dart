@@ -8,7 +8,10 @@ part 'recipe_step.g.dart';
 @embedded
 class RecipeStep {
   late int stepNumber;
-  late String instruction;
+  String title;
+  
+  @JsonKey(name: 'instruction')
+  String? description;
   
   @JsonKey(includeFromJson: true, includeToJson: true)
   int? timerSeconds;
@@ -20,27 +23,36 @@ class RecipeStep {
 
   RecipeStep({
     this.stepNumber = 0,
-    this.instruction = '',
+    this.title = '',
+    this.description,
     this.timerSeconds,
     this.timerLabel,
     this.ingredientsForStep,
   });
 
-  factory RecipeStep.fromJson(Map<String, dynamic> json) =>
-      _$RecipeStepFromJson(json);
+  factory RecipeStep.fromJson(Map<String, dynamic> json) {
+    final mapped = Map<String, dynamic>.from(json);
+    // Backwards compatibility: older data stored description under "instruction"
+    if (!mapped.containsKey('instruction') && mapped.containsKey('description')) {
+      mapped['instruction'] = mapped['description'];
+    }
+    return _$RecipeStepFromJson(mapped);
+  }
 
   Map<String, dynamic> toJson() => _$RecipeStepToJson(this);
 
   RecipeStep copyWith({
     int? stepNumber,
-    String? instruction,
+    String? title,
+    String? description,
     int? timerSeconds,
     String? timerLabel,
     List<Ingredient>? ingredientsForStep,
   }) {
     return RecipeStep(
       stepNumber: stepNumber ?? this.stepNumber,
-      instruction: instruction ?? this.instruction,
+      title: title ?? this.title,
+      description: description ?? this.description,
       timerSeconds: timerSeconds ?? this.timerSeconds,
       timerLabel: timerLabel ?? this.timerLabel,
       ingredientsForStep: ingredientsForStep ?? this.ingredientsForStep,

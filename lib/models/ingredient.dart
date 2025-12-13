@@ -8,15 +8,24 @@ part 'ingredient.g.dart';
 class Ingredient {
   late String name;
   late String amount;
-  late String unit;
-  
+  String? unit;
+  @JsonKey(unknownEnumValue: MeasurementSystem.customary)
+  MeasurementSystem measurementSystem = MeasurementSystem.customary;
+  String? secondaryAmount;
+  String? secondaryUnit;
+  MeasurementSystem? secondarySystem;
+
   @JsonKey(includeFromJson: true, includeToJson: true)
   String? notes;
 
   Ingredient({
     this.name = '',
     this.amount = '',
-    this.unit = '',
+    this.unit,
+    this.measurementSystem = MeasurementSystem.customary,
+    this.secondaryAmount,
+    this.secondaryUnit,
+    this.secondarySystem,
     this.notes,
   });
 
@@ -29,13 +38,27 @@ class Ingredient {
     String? name,
     String? amount,
     String? unit,
+    MeasurementSystem? measurementSystem,
+    String? secondaryAmount,
+    String? secondaryUnit,
+    MeasurementSystem? secondarySystem,
     String? notes,
   }) {
     return Ingredient(
       name: name ?? this.name,
       amount: amount ?? this.amount,
       unit: unit ?? this.unit,
+      measurementSystem: measurementSystem ?? this.measurementSystem,
+      secondaryAmount: secondaryAmount ?? this.secondaryAmount,
+      secondaryUnit: secondaryUnit ?? this.secondaryUnit,
+      secondarySystem: secondarySystem ?? this.secondarySystem,
       notes: notes ?? this.notes,
     );
   }
+}
+
+@JsonEnum()
+enum MeasurementSystem {
+  customary,
+  metric,
 }

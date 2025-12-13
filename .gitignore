@@ -52,6 +52,10 @@ ios/Runner/GoogleService-Info.plist
 lib/services/firebase_service.dart
 lib/services/admin_config.dart
 
+# Firebase Functions artifacts
+functions/node_modules/
+functions/.runtimeconfig.json
+
 # Generated files
 *.g.dart
 *.freezed.dart

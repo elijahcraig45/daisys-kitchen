@@ -10,7 +10,8 @@ class FirestoreService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   /// Get recipes collection reference
-  CollectionReference get _recipesCollection => _firestore.collection('recipes');
+  CollectionReference get _recipesCollection =>
+      _firestore.collection('recipes');
 
   /// Get all recipes (real-time stream)
   Stream<List<Recipe>> getRecipesStream() {
@@ -32,6 +33,7 @@ class FirestoreService {
       if (!doc.exists) return null;
       return _recipeFromFirestore(doc.id, doc.data() as Map<String, dynamic>);
     } catch (e) {
+      // ignore: avoid_print
       print('Error getting recipe: $e');
       return null;
     }
@@ -42,19 +44,21 @@ class FirestoreService {
     try {
       final user = _auth.currentUser;
       if (user == null) {
+        // ignore: avoid_print
         print('Error: User must be signed in to add recipes');
         return null;
       }
-      
+
       final data = _recipeToFirestore(recipe);
       // Add creator information
       data['createdBy'] = user.uid;
       data['createdByEmail'] = user.email;
       data['createdByName'] = user.displayName ?? user.email;
-      
+
       final docRef = await _recipesCollection.add(data);
       return docRef.id;
     } catch (e) {
+      // ignore: avoid_print
       print('Error adding recipe: $e');
       return null;
     }
@@ -65,19 +69,21 @@ class FirestoreService {
     try {
       final user = _auth.currentUser;
       if (user == null) {
+        // ignore: avoid_print
         print('Error: User must be signed in to update recipes');
         return false;
       }
-      
+
       final data = _recipeToFirestore(recipe);
       // Add update information
       data['updatedBy'] = user.uid;
       data['updatedByEmail'] = user.email;
       data['updatedByName'] = user.displayName ?? user.email;
-      
+
       await _recipesCollection.doc(id).update(data);
       return true;
     } catch (e) {
+      // ignore: avoid_print
       print('Error updating recipe: $e');
       return false;
     }
@@ -89,6 +95,7 @@ class FirestoreService {
       await _recipesCollection.doc(id).delete();
       return true;
     } catch (e) {
+      // ignore: avoid_print
       print('Error deleting recipe: $e');
       return false;
     }
@@ -100,6 +107,7 @@ class FirestoreService {
       await _recipesCollection.doc(id).update({'isFavorite': isFavorite});
       return true;
     } catch (e) {
+      // ignore: avoid_print
       print('Error toggling favorite: $e');
       return false;
     }
@@ -119,17 +127,38 @@ class FirestoreService {
       'notes': recipe.notes,
       'isFavorite': recipe.isFavorite,
       'tags': recipe.tags,
-      'ingredients': recipe.ingredients.map((i) => {
-        'name': i.name,
-        'amount': i.amount,
-        'unit': i.unit,
-      }).toList(),
-      'steps': recipe.steps.map((s) => {
-        'stepNumber': s.stepNumber,
-        'instruction': s.instruction,
-        'timerSeconds': s.timerSeconds,
-        'timerLabel': s.timerLabel,
-      }).toList(),
+      'ingredients': recipe.ingredients
+          .map((i) => {
+                'name': i.name,
+                'amount': i.amount,
+                'unit': i.unit,
+                'measurementSystem': i.measurementSystem.name,
+                'secondaryAmount': i.secondaryAmount,
+                'secondaryUnit': i.secondaryUnit,
+                'secondarySystem': i.secondarySystem?.name,
+              })
+          .toList(),
+      'steps': recipe.steps
+          .map((s) => {
+                'stepNumber': s.stepNumber,
+                'title': s.title,
+                'instruction': s.description,
+                'timerSeconds': s.timerSeconds,
+                'timerLabel': s.timerLabel,
+                'ingredientsForStep': s.ingredientsForStep
+                    ?.map((ingredient) => {
+                          'name': ingredient.name,
+                          'amount': ingredient.amount,
+                          'unit': ingredient.unit,
+                          'measurementSystem':
+                              ingredient.measurementSystem.name,
+                          'secondaryAmount': ingredient.secondaryAmount,
+                          'secondaryUnit': ingredient.secondaryUnit,
+                          'secondarySystem': ingredient.secondarySystem?.name,
+                        })
+                    .toList(),
+              })
+          .toList(),
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     };
@@ -146,7 +175,7 @@ class FirestoreService {
     recipe.firestoreId = id;
     recipe.prepTimeMinutes = data['prepTimeMinutes'];
     recipe.cookTimeMinutes = data['cookTimeMinutes'];
-    recipe.difficulty = data['difficulty'] != null 
+    recipe.difficulty = data['difficulty'] != null
         ? DifficultyLevel.values.firstWhere(
             (e) => e.name == data['difficulty'],
             orElse: () => DifficultyLevel.medium,
@@ -156,7 +185,7 @@ class FirestoreService {
     recipe.imageUrl = data['imageUrl'];
     recipe.notes = data['notes'];
     recipe.isFavorite = data['isFavorite'] ?? false;
-    
+
     // Handle tags
     if (data['tags'] != null) {
       final tags = (data['tags'] as List).cast<String>();
@@ -171,7 +200,21 @@ class FirestoreService {
         return Ingredient(
           name: i['name'] ?? '',
           amount: i['amount'] ?? '',
-          unit: i['unit'] ?? '',
+          unit: i['unit'],
+          measurementSystem: i['measurementSystem'] != null
+              ? MeasurementSystem.values.firstWhere(
+                  (system) => system.name == i['measurementSystem'],
+                  orElse: () => MeasurementSystem.customary,
+                )
+              : MeasurementSystem.customary,
+          secondaryAmount: i['secondaryAmount'],
+          secondaryUnit: i['secondaryUnit'],
+          secondarySystem: i['secondarySystem'] != null
+              ? MeasurementSystem.values.firstWhere(
+                  (system) => system.name == i['secondarySystem'],
+                  orElse: () => MeasurementSystem.metric,
+                )
+              : null,
         );
       }).toList();
       recipe.ingredients.addAll(ingredients);
@@ -180,12 +223,44 @@ class FirestoreService {
     // Handle steps
     if (data['steps'] != null) {
       final steps = (data['steps'] as List).map((s) {
-        return RecipeStep(
+        final step = RecipeStep(
           stepNumber: s['stepNumber'] ?? 0,
-          instruction: s['instruction'] ?? '',
+          title: (s['title'] ?? '').toString(),
+          description: (s['instruction'] ?? s['description'])?.toString(),
         )
           ..timerSeconds = s['timerSeconds']
           ..timerLabel = s['timerLabel'];
+
+        if (s['ingredientsForStep'] != null) {
+          final stepIngredients = (s['ingredientsForStep'] as List).map((i) {
+            return Ingredient(
+              name: i['name'] ?? '',
+              amount: i['amount'] ?? '',
+              unit: i['unit'],
+              measurementSystem: i['measurementSystem'] != null
+                  ? MeasurementSystem.values.firstWhere(
+                      (system) => system.name == i['measurementSystem'],
+                      orElse: () => MeasurementSystem.customary,
+                    )
+                  : MeasurementSystem.customary,
+              secondaryAmount: i['secondaryAmount'],
+              secondaryUnit: i['secondaryUnit'],
+              secondarySystem: i['secondarySystem'] != null
+                  ? MeasurementSystem.values.firstWhere(
+                      (system) => system.name == i['secondarySystem'],
+                      orElse: () => MeasurementSystem.metric,
+                    )
+                  : null,
+            );
+          }).toList();
+          step.ingredientsForStep = stepIngredients;
+        }
+        if (step.title.isEmpty) {
+          final displayNumber =
+              step.stepNumber == 0 ? recipe.steps.length + 1 : step.stepNumber;
+          step.title = 'Step $displayNumber';
+        }
+        return step;
       }).toList();
       recipe.steps.addAll(steps);
     }

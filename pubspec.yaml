@@ -54,6 +54,8 @@ dependencies:
   
   # Cached images for web
   cached_network_image: ^3.4.1
+  http: ^1.2.2
+  html: ^0.15.4
 
 dev_dependencies:
   flutter_test:
