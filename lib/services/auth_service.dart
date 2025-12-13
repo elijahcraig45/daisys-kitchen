@@ -7,7 +7,7 @@ import 'admin_config.dart';
 /// Authentication service for Firebase Auth
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final GoogleSignIn? _googleSignIn = kIsWeb ? null : GoogleSignIn();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // Admin user IDs - loaded from admin_config.dart (gitignored)
@@ -46,8 +46,8 @@ class AuthService {
         
         return userCredential;
       } else {
-        // Mobile: Use google_sign_in package
-        final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+        // Mobile/Desktop: Use google_sign_in package
+        final GoogleSignInAccount? googleUser = await _googleSignIn?.signIn();
         if (googleUser == null) return null; // User canceled
 
         // Obtain auth details
@@ -87,9 +87,7 @@ class AuthService {
 
   /// Sign out
   Future<void> signOut() async {
-    if (!kIsWeb) {
-      await _googleSignIn.signOut();
-    }
+    await _googleSignIn?.signOut();
     await _auth.signOut();
   }
 
