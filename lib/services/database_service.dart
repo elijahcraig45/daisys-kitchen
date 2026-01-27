@@ -1,30 +1,53 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:recipe_keeper/models/recipe.dart';
 import 'package:recipe_keeper/services/web_database_service.dart';
-
-// Conditional import - native implementation won't be included in web builds
-import 'database_service_stub.dart'
-    if (dart.library.io) 'database_service_native.dart';
+import 'package:recipe_keeper/services/logger_service.dart';
 
 class DatabaseService {
   static late dynamic _instance;
   static bool _initialized = false;
 
   static Future<void> initialize() async {
-    if (_initialized) return;
-    
-    if (kIsWeb) {
-      _instance = WebDatabaseService();
-      await WebDatabaseService.initialize();
-    } else {
-      final nativeDb = await initializeNativeDatabase();
-      _instance = createNativeDatabaseService(nativeDb);
+    if (_initialized) {
+      LoggerService.debug('Database already initialized', 'Database');
+      return;
     }
-    _initialized = true;
+    
+    try {
+      LoggerService.info('Initializing database service...', 'Database');
+      
+      if (kIsWeb) {
+        _instance = WebDatabaseService();
+        await WebDatabaseService.initialize();
+      } else {
+        // For now, use WebDatabaseService for all platforms until Isar schema is generated
+        _instance = WebDatabaseService();
+        await WebDatabaseService.initialize();
+      }
+      
+      _initialized = true;
+      LoggerService.success('Database service initialized', 'Database');
+    } catch (e, stackTrace) {
+      LoggerService.error(
+        'Failed to initialize database',
+        error: e,
+        stackTrace: stackTrace,
+        tag: 'Database',
+      );
+      rethrow;
+    }
+  }
+
+  static void _ensureInitialized() {
+    if (!_initialized) {
+      throw StateError('DatabaseService not initialized. Call initialize() first.');
+    }
   }
 
   // Delegate all methods to the appropriate implementation
   static Future<int> createRecipe(Recipe recipe) async {
+    _ensureInitialized();
+    
     if (kIsWeb) {
       return await (_instance as WebDatabaseService).createRecipe(recipe);
     } else {
@@ -33,6 +56,8 @@ class DatabaseService {
   }
 
   static Future<List<Recipe>> getAllRecipes() async {
+    _ensureInitialized();
+    
     if (kIsWeb) {
       return await (_instance as WebDatabaseService).getAllRecipes();
     } else {
@@ -41,6 +66,8 @@ class DatabaseService {
   }
 
   static Future<Recipe?> getRecipeById(int id) async {
+    _ensureInitialized();
+    
     if (kIsWeb) {
       return await (_instance as WebDatabaseService).getRecipeById(id);
     } else {
@@ -49,6 +76,8 @@ class DatabaseService {
   }
 
   static Future<List<Recipe>> searchRecipes(String query) async {
+    _ensureInitialized();
+    
     if (kIsWeb) {
       return await (_instance as WebDatabaseService).searchRecipes(query);
     } else {
@@ -57,6 +86,8 @@ class DatabaseService {
   }
 
   static Future<List<Recipe>> getRecipesByCategory(String category) async {
+    _ensureInitialized();
+    
     if (kIsWeb) {
       return await (_instance as WebDatabaseService).getRecipesByCategory(category);
     } else {
@@ -65,6 +96,8 @@ class DatabaseService {
   }
 
   static Future<List<Recipe>> getFavoriteRecipes() async {
+    _ensureInitialized();
+    
     if (kIsWeb) {
       return await (_instance as WebDatabaseService).getFavoriteRecipes();
     } else {
@@ -73,6 +106,8 @@ class DatabaseService {
   }
 
   static Future<void> updateRecipe(Recipe recipe) async {
+    _ensureInitialized();
+    
     recipe.updatedAt = DateTime.now();
     
     if (kIsWeb) {
@@ -83,6 +118,8 @@ class DatabaseService {
   }
 
   static Future<bool> deleteRecipe(int id) async {
+    _ensureInitialized();
+    
     if (kIsWeb) {
       return await (_instance as WebDatabaseService).deleteRecipe(id);
     } else {

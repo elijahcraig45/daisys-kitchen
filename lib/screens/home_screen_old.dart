@@ -155,7 +155,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void _navigateToDetail(Recipe recipe) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => RecipeDetailScreen(recipe: recipe),
+        builder: (context) => RecipeDetailScreen(
+          recipeId: recipe.firestoreId ?? recipe.id.toString(),
+          recipe: recipe,
+        ),
       ),
     );
   }

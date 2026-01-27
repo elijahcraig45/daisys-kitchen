@@ -60,3 +60,4 @@ functions/.runtimeconfig.json
 *.g.dart
 *.freezed.dart
 *.config.dart
+lib/services/gemini_config.dart

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:recipe_keeper/router.dart';
 import 'package:recipe_keeper/services/database_service.dart';
 import 'package:recipe_keeper/services/firebase_service.dart';
+import 'package:recipe_keeper/services/remote_config_service.dart';
+import 'package:recipe_keeper/services/logger_service.dart';
 
 const _blueGlitterBanner1 = Color(0xFF025159);
 const _blueGlitterBanner2 = Color(0xFF3E848C);
@@ -81,13 +83,74 @@ const _darkDaisysColorScheme = ColorScheme(
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Firebase first
-  await FirebaseService.initialize();
+  try {
+    LoggerService.info('Initializing Recipe Keeper app...', 'Main');
+    
+    // Initialize Firebase first
+    LoggerService.info('Initializing Firebase...', 'Main');
+    await FirebaseService.initialize();
+    LoggerService.success('Firebase initialized successfully', 'Main');
+    
+    // Initialize Remote Config for API keys
+    try {
+      await RemoteConfigService.instance.initialize();
+      LoggerService.success('Remote Config initialized', 'Main');
+    } catch (e) {
+      LoggerService.warning('Remote Config initialization failed: $e', 'Main');
+    }
 
-  // Then initialize local database
-  await DatabaseService.initialize();
+    // Then initialize local database
+    LoggerService.info('Initializing local database...', 'Main');
+    await DatabaseService.initialize();
+    LoggerService.success('Database initialized successfully', 'Main');
 
-  runApp(const ProviderScope(child: RecipeKeeperApp()));
+    runApp(const ProviderScope(child: RecipeKeeperApp()));
+  } catch (e, stackTrace) {
+    LoggerService.error(
+      'Failed to initialize app',
+      error: e,
+      stackTrace: stackTrace,
+      tag: 'Main',
+    );
+    
+    runApp(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Shiver me timbers! Failed to launch',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Error: $e',
+                    style: const TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () {
+                      // Attempt to restart
+                      runApp(const ProviderScope(child: RecipeKeeperApp()));
+                    },
+                    child: const Text('Try Again'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class RecipeKeeperApp extends StatelessWidget {

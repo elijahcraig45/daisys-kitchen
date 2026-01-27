@@ -6,10 +6,13 @@ import 'package:html/parser.dart' as html_parser;
 import 'package:http/http.dart' as http;
 import 'package:recipe_keeper/models/ingredient.dart';
 import 'package:recipe_keeper/models/recipe_step.dart';
+import 'package:recipe_keeper/services/gemini_service.dart';
+import 'package:recipe_keeper/services/logger_service.dart';
 
-/// Fetches recipe data from Tasty Recipes compatible print pages and converts it
-/// into app-friendly models.
+/// Fetches recipe data from URLs using AI-powered extraction (Gemini)
+/// Falls back to HTML parsing for Tasty Recipes compatible print pages
 class RecipeAutofillService {
+  final GeminiService _geminiService = GeminiService();
   static const String _defaultWebProxyUrl = String.fromEnvironment(
     'RECIPE_AUTOFILL_PROXY_URL',
     defaultValue:
@@ -38,6 +41,31 @@ class RecipeAutofillService {
       throw RecipeAutofillException('Please enter a valid http or https URL.');
     }
 
+    // Try Gemini first if enabled (smarter extraction)
+    if (_geminiService.isEnabled) {
+      LoggerService.info('Using Gemini AI to extract recipe from URL', 'RecipeAutofill');
+      try {
+        final recipe = await _geminiService.extractRecipeFromUrl(url);
+        if (recipe != null) {
+          LoggerService.success('Successfully extracted recipe using Gemini', 'RecipeAutofill');
+          return RecipeAutofillResult(
+            title: recipe.title,
+            description: recipe.description,
+            imageUrl: recipe.imageUrl,
+            servings: recipe.servings,
+            prepTimeMinutes: recipe.prepTimeMinutes,
+            cookTimeMinutes: recipe.cookTimeMinutes,
+            ingredients: recipe.ingredients,
+            steps: recipe.steps,
+          );
+        }
+      } catch (e) {
+        LoggerService.warning('Gemini extraction failed, falling back to HTML parsing: $e', 'RecipeAutofill');
+      }
+    }
+
+    // Fallback to HTML parsing
+    LoggerService.info('Using HTML parsing to extract recipe', 'RecipeAutofill');
     final requestUri = _buildRequestUri(uri);
     final response = await _client.get(requestUri);
     if (response.statusCode != 200) {

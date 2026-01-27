@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:recipe_keeper/providers/firebase_providers.dart';
-import 'package:recipe_keeper/services/auth_service.dart';
 
 /// App bar with authentication status and admin controls
 class AuthAppBar extends ConsumerWidget implements PreferredSizeWidget {

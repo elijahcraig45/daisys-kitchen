@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:recipe_keeper/models/recipe.dart';
 import 'package:recipe_keeper/providers/firebase_providers.dart';
+import 'package:recipe_keeper/providers/gemini_providers.dart';
 import 'package:recipe_keeper/services/import_export_service.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -320,7 +321,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       floatingActionButton: userAsync.when(
         data: (user) => user != null
             ? FloatingActionButton.extended(
-                onPressed: () => context.push('/recipe/new'),
+                onPressed: () => _showAddRecipeOptions(context),
                 icon: const Icon(Icons.add),
                 label: const Text('New Recipe'),
               )
@@ -795,5 +796,240 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ],
       ),
     );
+  }
+
+  /// Show options for adding a recipe
+  void _showAddRecipeOptions(BuildContext context) {
+    final isGeminiEnabled = ref.read(isGeminiEnabledProvider);
+    
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.add_circle_outline, size: 28),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Add New Recipe',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              
+              // Step-by-step editor
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.edit_note),
+                ),
+                title: const Text('Step-by-Step Editor'),
+                subtitle: const Text('Create recipe manually with full control'),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: () {
+                  Navigator.pop(context);
+                  context.push('/recipe/new');
+                },
+              ),
+              
+              const SizedBox(height: 12),
+              
+              // Quick paste with AI
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: isGeminiEnabled 
+                      ? Colors.amber.shade100
+                      : Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.auto_awesome,
+                    color: isGeminiEnabled ? Colors.amber.shade700 : Colors.grey,
+                  ),
+                ),
+                title: Row(
+                  children: [
+                    const Text('Quick Paste Import'),
+                    if (isGeminiEnabled) ...[
+                      const SizedBox(width: 8),
+                      const Icon(Icons.verified, size: 16, color: Colors.green),
+                    ],
+                  ],
+                ),
+                subtitle: Text(
+                  isGeminiEnabled
+                    ? '🏴‍☠️ Paste entire recipe - AI structures it for ye'
+                    : 'Requires Gemini API key in gemini_config.dart',
+                ),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                enabled: isGeminiEnabled,
+                onTap: isGeminiEnabled
+                  ? () {
+                      Navigator.pop(context);
+                      _showQuickPasteImport(context);
+                    }
+                  : null,
+              ),
+              
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Show quick paste import dialog
+  Future<void> _showQuickPasteImport(BuildContext context) async {
+    final controller = TextEditingController();
+    bool isProcessing = false;
+    
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.auto_awesome, color: Colors.amber, size: 28),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text('Quick Paste Import'),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '🏴‍☠️ Paste yer entire recipe below - ingredients, steps, servings, everything! '
+                  'The AI will structure it into a proper recipe with both customary and metric units.',
+                  style: TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: controller,
+                  decoration: const InputDecoration(
+                    labelText: 'Paste Recipe Here',
+                    hintText: 'Title: Chocolate Chip Cookies\n\nIngredients:\n- 2 cups flour\n- 1 cup sugar\n...',
+                    border: OutlineInputBorder(),
+                    alignLabelWithHint: true,
+                  ),
+                  maxLines: 12,
+                  enabled: !isProcessing,
+                  autofocus: true,
+                ),
+                if (isProcessing) ...[
+                  const SizedBox(height: 16),
+                  const LinearProgressIndicator(),
+                  const SizedBox(height: 8),
+                  const Text(
+                    '🏴‍☠️ The AI be workin\' its magic...',
+                    style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isProcessing ? null : () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            FilledButton.icon(
+              onPressed: isProcessing || controller.text.trim().isEmpty
+                ? null
+                : () async {
+                    final text = controller.text.trim();
+                    setDialogState(() => isProcessing = true);
+                    
+                    try {
+                      // Extract recipe using Gemini
+                      final recipe = await ref.read(
+                        extractRecipeFromTextProvider(text).future,
+                      );
+                      
+                      if (!context.mounted) return;
+                      
+                      if (recipe == null) {
+                        Navigator.pop(dialogContext);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('🏴‍☠️ Could not extract recipe. Try again with more details.'),
+                            backgroundColor: Colors.orange,
+                          ),
+                        );
+                        return;
+                      }
+                      
+                      // Save the recipe
+                      final firestoreService = ref.read(firestoreServiceProvider);
+                      final authService = ref.read(authServiceProvider);
+                      final user = authService.currentUser;
+                      
+                      if (user != null) {
+                        await firestoreService.addRecipe(recipe);
+                      }
+                      
+                      Navigator.pop(dialogContext);
+                      
+                      if (!context.mounted) return;
+                      
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('🏴‍☠️ Recipe "${recipe.title}" added to yer collection!'),
+                          backgroundColor: Colors.green,
+                          action: SnackBarAction(
+                            label: 'View',
+                            textColor: Colors.white,
+                            onPressed: () {
+                              // Navigate to recipe detail if it has an ID
+                              if (recipe.firestoreId != null) {
+                                context.push('/recipe/${recipe.firestoreId}');
+                              }
+                            },
+                          ),
+                        ),
+                      );
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      Navigator.pop(dialogContext);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('🏴‍☠️ Import failed: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  },
+              icon: const Icon(Icons.auto_awesome),
+              label: const Text('Import Recipe'),
+            ),
+          ],
+        ),
+      ),
+    );
+    
+    controller.dispose();
   }
 }

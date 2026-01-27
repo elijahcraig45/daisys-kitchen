@@ -6,6 +6,7 @@ import 'package:recipe_keeper/models/recipe.dart';
 import 'package:recipe_keeper/models/ingredient.dart';
 import 'package:recipe_keeper/models/recipe_step.dart';
 import 'package:recipe_keeper/providers/firebase_providers.dart';
+import 'package:recipe_keeper/providers/gemini_providers.dart';
 import 'package:recipe_keeper/services/recipe_autofill_service.dart';
 
 class RecipeEditorScreen extends ConsumerStatefulWidget {
@@ -135,10 +136,21 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
         title: Text(widget.recipe == null ? 'New Recipe' : 'Edit Recipe'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.auto_awesome),
+            tooltip: 'AI Extract from text',
+            onPressed: _isAutofilling ? null : _showAIExtractDialog,
+          ),
+          IconButton(
             icon: const Icon(Icons.auto_fix_high),
             tooltip: 'Autofill from link',
             onPressed: _isAutofilling ? null : _showAutofillDialog,
           ),
+          if (widget.recipe == null)
+            IconButton(
+              icon: const Icon(Icons.verified),
+              tooltip: 'Verify with AI',
+              onPressed: _isAutofilling ? null : _verifyRecipeWithAI,
+            ),
           if (_isAutofilling)
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
@@ -456,7 +468,7 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
                     width: fieldWidth,
                     child: DropdownButtonFormField<DifficultyLevel>(
                       key: ValueKey('difficulty-${_difficulty.name}'),
-                      initialValue: _difficulty,
+                      value: _difficulty,
                       decoration: const InputDecoration(
                         labelText: 'Difficulty',
                       ),
@@ -1201,6 +1213,175 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
         });
       }
     }
+  }
+
+  /// AI Extract dialog - paste recipe text or URL
+  Future<void> _showAIExtractDialog() async {
+    final isGeminiEnabled = ref.read(isGeminiEnabledProvider);
+    
+    if (!isGeminiEnabled) {
+      _showSimpleMessage(
+        '🏴‍☠️ AI features require a Gemini API key. Configure it in gemini_config.dart',
+      );
+      return;
+    }
+
+    final controller = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.auto_awesome, color: Colors.amber),
+              SizedBox(width: 8),
+              Text('AI Recipe Extract'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '🏴‍☠️ Paste a recipe URL or recipe text below. '
+                'The AI will extract and clean it up, adding both customary and metric units!',
+                style: TextStyle(fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                decoration: const InputDecoration(
+                  labelText: 'Recipe URL or Text',
+                  hintText: 'https://example.com/recipe or paste recipe text...',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 8,
+                autofocus: true,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton.icon(
+              onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+              icon: const Icon(Icons.auto_awesome),
+              label: const Text('Extract'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result == null || result.isEmpty || !mounted) return;
+
+    setState(() => _isAutofilling = true);
+
+    try {
+      Recipe? recipe;
+      
+      // Check if it's a URL
+      final uri = Uri.tryParse(result);
+      if (uri != null && (uri.scheme == 'http' || uri.scheme == 'https')) {
+        recipe = await ref.read(extractRecipeFromUrlProvider(result).future);
+      } else {
+        recipe = await ref.read(extractRecipeFromTextProvider(result).future);
+      }
+
+      if (recipe == null) {
+        _showSimpleMessage('Could not extract recipe. Try a different format.');
+        return;
+      }
+
+      setState(() {
+        _applyRecipe(recipe!);
+      });
+      _showSimpleMessage('🏴‍☠️ Recipe extracted! Review and save when ready.');
+    } catch (e) {
+      _showSimpleMessage('AI extraction failed: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isAutofilling = false);
+      }
+    }
+  }
+
+  /// Verify current recipe with AI
+  Future<void> _verifyRecipeWithAI() async {
+    final isGeminiEnabled = ref.read(isGeminiEnabledProvider);
+    
+    if (!isGeminiEnabled) {
+      _showSimpleMessage(
+        '🏴‍☠️ AI features require a Gemini API key. Configure it in gemini_config.dart',
+      );
+      return;
+    }
+
+    if (_ingredients.isEmpty || _steps.isEmpty) {
+      _showSimpleMessage('Add ingredients and steps before verifying');
+      return;
+    }
+
+    setState(() => _isAutofilling = true);
+
+    try {
+      final currentRecipe = Recipe(
+        title: _titleController.text.trim(),
+        description: _descriptionController.text.trim(),
+        servings: int.tryParse(_servingsController.text) ?? 4,
+        prepTimeMinutes: int.tryParse(_prepTimeController.text) ?? 0,
+        cookTimeMinutes: int.tryParse(_cookTimeController.text) ?? 0,
+        category: _categoryController.text.trim(),
+        notes: _notesController.text.trim(),
+        tags: _tags,
+      );
+      currentRecipe.ingredients.addAll(_ingredients);
+      currentRecipe.steps.addAll(_steps);
+
+      final verifiedRecipe = await ref.read(verifyRecipeProvider(currentRecipe).future);
+
+      if (verifiedRecipe == null) {
+        _showSimpleMessage('Verification failed. Recipe unchanged.');
+        return;
+      }
+
+      setState(() {
+        _applyRecipe(verifiedRecipe);
+      });
+      _showSimpleMessage('🏴‍☠️ Recipe verified and enhanced! Check the improvements.');
+    } catch (e) {
+      _showSimpleMessage('AI verification failed: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isAutofilling = false);
+      }
+    }
+  }
+
+  void _applyRecipe(Recipe recipe) {
+    _titleController.text = recipe.title;
+    _descriptionController.text = recipe.description;
+    _imageUrlController.text = recipe.imageUrl ?? '';
+    _servingsController.text = recipe.servings.toString();
+    _prepTimeController.text = (recipe.prepTimeMinutes ?? 0).toString();
+    _cookTimeController.text = (recipe.cookTimeMinutes ?? 0).toString();
+    _categoryController.text = recipe.category ?? '';
+    _notesController.text = recipe.notes ?? '';
+    
+    _ingredients.clear();
+    _ingredients.addAll(recipe.ingredients);
+    
+    _steps.clear();
+    _steps.addAll(recipe.steps);
+    
+    _tags.clear();
+    if (recipe.tags != null) {
+      _tags.addAll(recipe.tags!);
+    }
+    
+    _syncStepIngredientSelections();
   }
 
   void _applyAutofillResult(RecipeAutofillResult result) {
