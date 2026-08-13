@@ -14,9 +14,15 @@ flutter test                                               # 20 tests: RecipeMap
 flutter analyze                                            # ~7 issues, all pre-existing infos
 flutter build web --release
 firebase deploy --only hosting                             # see build-dir gotcha below
-firebase deploy --only firestore:rules                     # prefer this over --only firestore
-firebase deploy --only functions                           # functions/ is NOT in CI
+firebase deploy --only firestore:rules                     # rules are NOT in CI
+firebase deploy --only functions                           # functions/ are NOT in CI
 ```
+
+**Firebase CLI auth trap:** this machine exports `GOOGLE_APPLICATION_CREDENTIALS` pointing at a *work*
+service-account key, and firebase-tools prefers it over the personal login — every command against
+`recipe-f644f` then fails with a 401 that looks like a login problem even though `firebase login:list` shows
+`elijahcraig45@gmail.com`. Prefix deploys with `env -u GOOGLE_APPLICATION_CREDENTIALS`. If a 401 persists after
+that, the stored personal token has expired: `firebase login --reauth` (interactive).
 
 **Local deploy trap:** a machine-global setting in `~/.config/flutter/settings` sets `"build-dir": "server/build"`,
 so `flutter build web` writes to `server/build/web` while `firebase.json` serves `build/web`. A local
