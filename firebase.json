@@ -2,8 +2,7 @@
   "firestore": {
     "database": "(default)",
     "location": "nam5",
-    "rules": "firestore.rules",
-    "indexes": "N"
+    "rules": "firestore.rules"
   },
   "functions": {
     "source": "functions"
