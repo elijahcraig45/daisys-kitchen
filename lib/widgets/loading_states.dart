@@ -57,7 +57,7 @@ class _LoadingStateState extends State<LoadingState> {
           Text(
             _displayMessage,
             style: theme.textTheme.titleMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.7),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
             ),
             textAlign: TextAlign.center,
           ),
@@ -95,13 +95,13 @@ class EmptyState extends StatelessWidget {
             Icon(
               icon,
               size: 80,
-              color: theme.colorScheme.primary.withOpacity(0.3),
+              color: theme.colorScheme.primary.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 24),
             Text(
               title,
               style: theme.textTheme.headlineSmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.7),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
               ),
               textAlign: TextAlign.center,
             ),
@@ -110,7 +110,7 @@ class EmptyState extends StatelessWidget {
               Text(
                 message!,
                 style: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.5),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -169,7 +169,7 @@ class ErrorState extends StatelessWidget {
               Text(
                 message!,
                 style: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.7),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -250,9 +250,9 @@ class _SkeletonLoaderState extends State<SkeletonLoader>
                     begin: Alignment.centerLeft,
                     end: Alignment.centerRight,
                     colors: [
-                      theme.colorScheme.surfaceVariant.withOpacity(0.3),
-                      theme.colorScheme.surfaceVariant.withOpacity(0.6),
-                      theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                      theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                      theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+                      theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                     ],
                     stops: [
                       _controller.value - 0.3,

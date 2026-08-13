@@ -1,3 +1,5 @@
+library;
+
 /// Gemini API Configuration Template
 /// Copy this file to gemini_config.dart and add your API key
 /// The gemini_config.dart file is gitignored for security

@@ -1,96 +1,78 @@
 import 'package:flutter/material.dart';
 import 'package:recipe_keeper/models/recipe.dart';
 
+/// Grid tile for a single recipe.
+///
+/// Metadata is rendered as a quiet single-accent row rather than a run of
+/// coloured chips, so a wall of cards reads as one calm surface.
 class RecipeCard extends StatelessWidget {
-  final Recipe recipe;
-  final VoidCallback onTap;
-
   const RecipeCard({
     super.key,
     required this.recipe,
     required this.onTap,
   });
 
+  final Recipe recipe;
+  final VoidCallback onTap;
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (recipe.imageUrl != null && recipe.imageUrl!.isNotEmpty)
-              Image.network(
-                recipe.imageUrl!,
-                height: 150,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return _buildPlaceholder();
-                },
-              )
-            else
-              _buildPlaceholder(),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            Expanded(
+              flex: 3,
+              child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          recipe.title,
-                          style: Theme.of(context).textTheme.titleLarge,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (recipe.isFavorite)
-                        const Icon(
+                  _Image(recipe: recipe),
+                  if (recipe.isFavorite)
+                    Positioned(
+                      top: 10,
+                      right: 10,
+                      child: _Badge(
+                        child: Icon(
                           Icons.favorite,
-                          color: Colors.red,
-                          size: 20,
+                          size: 14,
+                          color: colors.secondary,
                         ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    recipe.description,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: [
-                      if (recipe.totalTimeMinutes > 0)
-                        _buildChip(
-                          icon: Icons.timer,
-                          label: '${recipe.totalTimeMinutes} min',
-                        ),
-                      if (recipe.servings > 0)
-                        _buildChip(
-                          icon: Icons.people,
-                          label: '${recipe.servings} servings',
-                        ),
-                      _buildChip(
-                        icon: _getDifficultyIcon(),
-                        label: _getDifficultyText(),
-                        color: _getDifficultyColor(),
                       ),
-                      if (recipe.category != null && recipe.category!.isNotEmpty)
-                        _buildChip(
-                          icon: Icons.category,
-                          label: recipe.category!,
-                        ),
-                    ],
-                  ),
+                    ),
                 ],
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      recipe.title,
+                      style: theme.textTheme.titleMedium,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (recipe.description.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        recipe.description,
+                        style: theme.textTheme.bodySmall,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    const Spacer(),
+                    _MetaRow(recipe: recipe),
+                  ],
+                ),
               ),
             ),
           ],
@@ -98,63 +80,107 @@ class RecipeCard extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildPlaceholder() {
+class _Image extends StatelessWidget {
+  const _Image({required this.recipe});
+
+  final Recipe recipe;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = recipe.imageUrl;
+    if (url == null || url.isEmpty) {
+      return const _ImagePlaceholder();
+    }
+
+    return Image.network(
+      url,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) => const _ImagePlaceholder(),
+    );
+  }
+}
+
+class _ImagePlaceholder extends StatelessWidget {
+  const _ImagePlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Container(
-      height: 150,
-      width: double.infinity,
-      color: Colors.grey[300],
-      child: const Icon(
-        Icons.restaurant,
-        size: 64,
-        color: Colors.grey,
+      color: colors.surfaceContainerHigh,
+      child: Center(
+        child: Icon(
+          Icons.restaurant_menu,
+          size: 36,
+          color: colors.onSurfaceVariant.withValues(alpha: 0.5),
+        ),
       ),
     );
   }
+}
 
-  Widget _buildChip({
-    required IconData icon,
-    required String label,
-    Color? color,
-  }) {
-    return Chip(
-      avatar: Icon(icon, size: 16, color: color),
-      label: Text(label, style: TextStyle(fontSize: 12, color: color)),
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+class _Badge extends StatelessWidget {
+  const _Badge({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerLowest,
+        shape: BoxShape.circle,
+        border: Border.all(color: colors.outlineVariant),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _MetaRow extends StatelessWidget {
+  const _MetaRow({required this.recipe});
+
+  final Recipe recipe;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final parts = <String>[
+      if (recipe.totalTimeMinutes > 0) _formatMinutes(recipe.totalTimeMinutes),
+      if (recipe.servings > 0)
+        '${recipe.servings} serving${recipe.servings == 1 ? '' : 's'}',
+      _difficultyLabel(recipe.difficulty),
+    ];
+
+    return Row(
+      children: [
+        Icon(Icons.schedule, size: 14, color: colors.onSurfaceVariant),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            parts.join('  ·  '),
+            style: theme.textTheme.labelMedium,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 
-  IconData _getDifficultyIcon() {
-    switch (recipe.difficulty) {
-      case DifficultyLevel.easy:
-        return Icons.star;
-      case DifficultyLevel.medium:
-        return Icons.star_half;
-      case DifficultyLevel.hard:
-        return Icons.warning;
-    }
+  static String _formatMinutes(int minutes) {
+    if (minutes < 60) return '$minutes min';
+    final hours = minutes ~/ 60;
+    final rest = minutes % 60;
+    return rest == 0 ? '$hours hr' : '$hours hr $rest min';
   }
 
-  String _getDifficultyText() {
-    switch (recipe.difficulty) {
-      case DifficultyLevel.easy:
-        return 'Easy';
-      case DifficultyLevel.medium:
-        return 'Medium';
-      case DifficultyLevel.hard:
-        return 'Hard';
-    }
-  }
-
-  Color _getDifficultyColor() {
-    switch (recipe.difficulty) {
-      case DifficultyLevel.easy:
-        return Colors.green;
-      case DifficultyLevel.medium:
-        return Colors.orange;
-      case DifficultyLevel.hard:
-        return Colors.red;
-    }
+  static String _difficultyLabel(DifficultyLevel level) {
+    return level.name[0].toUpperCase() + level.name.substring(1);
   }
 }

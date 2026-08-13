@@ -5,10 +5,15 @@ import 'package:recipe_keeper/models/recipe.dart';
 import 'package:recipe_keeper/providers/firebase_providers.dart';
 import 'package:recipe_keeper/providers/gemini_providers.dart';
 import 'package:recipe_keeper/services/import_export_service.dart';
+import 'package:recipe_keeper/theme/app_theme.dart';
+import 'package:recipe_keeper/utils/app_constants.dart';
+import 'package:recipe_keeper/utils/debouncer.dart';
+import 'package:recipe_keeper/utils/snackbar_helper.dart';
+import 'package:recipe_keeper/widgets/recipe_card.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   final String? initialCategory;
-  
+
   const HomeScreen({super.key, this.initialCategory});
 
   @override
@@ -17,19 +22,26 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final _searchController = TextEditingController();
+  final _searchDebouncer = Debouncer();
   final _importExportService = ImportExportService();
-  String? _selectedCategory;
-  DifficultyLevel? _selectedDifficulty;
-  bool _showFavoritesOnly = false;
-  
+
   @override
   void initState() {
     super.initState();
-    _selectedCategory = widget.initialCategory;
+    final initialCategory = widget.initialCategory;
+    if (initialCategory != null) {
+      // Provider state cannot be written while the widget is initialising.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ref.read(selectedCategoryProvider.notifier).state = initialCategory;
+        }
+      });
+    }
   }
-  
+
   @override
   void dispose() {
+    _searchDebouncer.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -41,6 +53,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final authService = ref.watch(authServiceProvider);
     final userAsync = ref.watch(currentUserProvider);
     final isAdmin = ref.watch(isAdminProvider);
+    final selectedDifficulty = ref.watch(selectedDifficultyProvider);
+    final showFavoritesOnly = ref.watch(showFavoritesOnlyProvider);
     final screenWidth = MediaQuery.of(context).size.width;
     final isWideScreen = screenWidth > 900;
 
@@ -50,18 +64,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           children: [
             const Icon(Icons.restaurant_menu, size: 28),
             const SizedBox(width: 12),
-            const Text(
-              'Recipe Keeper',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            Text(
+              AppConstants.appName,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: Theme.of(context).appBarTheme.foregroundColor,
+                    fontWeight: FontWeight.w600,
+                  ),
             ),
           ],
         ),
         actions: [
-          if (_showFavoritesOnly)
+          if (showFavoritesOnly)
             Chip(
-              avatar: const Icon(Icons.favorite, size: 18, color: Colors.red),
+              avatar: Icon(Icons.favorite,
+                  size: 16, color: Theme.of(context).colorScheme.secondary),
               label: const Text('Favorites'),
-              onDeleted: () => setState(() => _showFavoritesOnly = false),
+              onDeleted: () =>
+                  ref.read(showFavoritesOnlyProvider.notifier).state = false,
               deleteIcon: const Icon(Icons.close, size: 18),
             ),
           const SizedBox(width: 8),
@@ -78,13 +97,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               // Get user data from the actual user object
               final displayName = user.displayName ?? user.email ?? 'User';
               final photoUrl = user.photoURL;
-              
+
               return PopupMenuButton<String>(
                 icon: CircleAvatar(
                   radius: 16,
-                  backgroundImage: photoUrl != null
-                      ? NetworkImage(photoUrl)
-                      : null,
+                  backgroundImage:
+                      photoUrl != null ? NetworkImage(photoUrl) : null,
                   child: photoUrl == null
                       ? Text(displayName[0].toUpperCase())
                       : null,
@@ -94,9 +112,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   if (value == 'signout') {
                     await authService.signOut();
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Signed out successfully')),
-                      );
+                      SnackBarHelper.showInfo(context, 'Signed out.');
                     }
                   }
                 },
@@ -108,12 +124,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       children: [
                         Text(
                           displayName,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          style: Theme.of(context).textTheme.titleSmall,
                         ),
                         if (isAdmin)
-                          const Text(
+                          Text(
                             'Admin',
-                            style: TextStyle(color: Colors.green, fontSize: 12),
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelSmall
+                                ?.copyWith(color: context.statusColors.success),
                           ),
                       ],
                     ),
@@ -176,7 +195,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               } else if (value == 'export') {
                 await _exportAllRecipes();
               } else if (value == 'favorites') {
-                setState(() => _showFavoritesOnly = true);
+                ref.read(showFavoritesOnlyProvider.notifier).state = true;
               }
             },
           ),
@@ -200,112 +219,119 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
               child: _buildSidebar(categories),
             ),
-          
+
           // Main content
           Expanded(
             child: Column(
               children: [
                 // Search and filters
                 Container(
-                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.surface,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Theme.of(context).colorScheme.outlineVariant,
                       ),
-                    ],
+                    ),
                   ),
-                  child: Column(
-                    children: [
-                      // Search bar
-                      TextField(
-                        controller: _searchController,
-                        decoration: InputDecoration(
-                          hintText: 'Search recipes by name, ingredients, or tags...',
-                          prefixIcon: const Icon(Icons.search),
-                          suffixIcon: _searchController.text.isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(Icons.clear),
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    ref.read(searchQueryProvider.notifier).state = '';
-                                  },
-                                )
-                              : null,
-                        ),
-                        onChanged: (value) {
-                          ref.read(searchQueryProvider.notifier).state = value;
-                        },
-                      ),
-                      
-                      // Filter chips (mobile)
-                      if (!isWideScreen) ...[
-                        const SizedBox(height: 12),
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: [
-                              _buildDifficultyChip(DifficultyLevel.easy),
-                              const SizedBox(width: 8),
-                              _buildDifficultyChip(DifficultyLevel.medium),
-                              const SizedBox(width: 8),
-                              _buildDifficultyChip(DifficultyLevel.hard),
-                              if (_selectedDifficulty != null) ...[
-                                const SizedBox(width: 8),
-                                TextButton.icon(
-                                  onPressed: () => setState(() => _selectedDifficulty = null),
-                                  icon: const Icon(Icons.clear),
-                                  label: const Text('Clear'),
-                                ),
-                              ],
-                            ],
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                        maxWidth: AppTheme.maxContentWidth - 48),
+                    child: Column(
+                      children: [
+                        // Search bar
+                        TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            hintText:
+                                'Search recipes by name, ingredients, or tags...',
+                            prefixIcon: const Icon(Icons.search),
+                            suffixIcon: _searchController.text.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      _searchDebouncer.cancel();
+                                      ref
+                                          .read(searchQueryProvider.notifier)
+                                          .state = '';
+                                      setState(() {});
+                                    },
+                                  )
+                                : null,
                           ),
+                          onChanged: (value) {
+                            setState(() {});
+                            _searchDebouncer(() {
+                              if (!mounted) return;
+                              ref.read(searchQueryProvider.notifier).state =
+                                  value;
+                            });
+                          },
                         ),
+
+                        // Filter chips (mobile)
+                        if (!isWideScreen) ...[
+                          const SizedBox(height: 12),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: [
+                                _buildDifficultyChip(DifficultyLevel.easy),
+                                const SizedBox(width: 8),
+                                _buildDifficultyChip(DifficultyLevel.medium),
+                                const SizedBox(width: 8),
+                                _buildDifficultyChip(DifficultyLevel.hard),
+                                if (selectedDifficulty != null) ...[
+                                  const SizedBox(width: 8),
+                                  TextButton.icon(
+                                    onPressed: () => ref
+                                        .read(
+                                            selectedDifficultyProvider.notifier)
+                                        .state = null,
+                                    icon: const Icon(Icons.clear),
+                                    label: const Text('Clear'),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
-                
+
                 // Recipe grid
                 Expanded(
                   child: recipesAsync.when(
-                    data: (recipes) {
-                      var filteredRecipes = recipes;
-                      
-                      // Apply category filter
-                      if (_selectedCategory != null) {
-                        filteredRecipes = filteredRecipes
-                            .where((r) => r.category?.toLowerCase() == _selectedCategory!.toLowerCase())
-                            .toList();
-                      }
-                      
-                      // Apply difficulty filter
-                      if (_selectedDifficulty != null) {
-                        filteredRecipes = filteredRecipes
-                            .where((r) => r.difficulty == _selectedDifficulty)
-                            .toList();
-                      }
-                      
-                      // Apply favorites filter
-                      if (_showFavoritesOnly) {
-                        filteredRecipes = filteredRecipes.where((r) => r.isFavorite).toList();
-                      }
-                      
+                    data: (_) {
+                      final filteredRecipes =
+                          ref.watch(firestoreFilteredRecipesProvider);
+
                       if (filteredRecipes.isEmpty) {
                         return _buildEmptyState();
                       }
-                      
-                      return _buildRecipeGrid(filteredRecipes, screenWidth);
+
+                      return LayoutBuilder(
+                        builder: (context, constraints) => _buildRecipeGrid(
+                          filteredRecipes,
+                          constraints.maxWidth,
+                        ),
+                      );
                     },
-                    loading: () => const Center(child: CircularProgressIndicator()),
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
                     error: (error, stack) => Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                          Icon(Icons.error_outline,
+                              size: 40,
+                              color: Theme.of(context).colorScheme.error),
                           const SizedBox(height: 16),
                           Text('Error: $error'),
                         ],
@@ -331,305 +357,137 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
     );
   }
-  
+
   Widget _buildSidebar(List<String> categories) {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        const Text(
-          'Categories',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+          child: Text(
+            'Categories',
+            style: Theme.of(context).textTheme.labelMedium,
           ),
         ),
-        const SizedBox(height: 16),
         ListTile(
           leading: const Icon(Icons.all_inclusive),
           title: const Text('All Recipes'),
-          selected: _selectedCategory == null,
+          selected: ref.watch(selectedCategoryProvider) == null,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
           ),
-          onTap: () => setState(() => _selectedCategory = null),
+          onTap: () => ref.read(selectedCategoryProvider.notifier).state = null,
         ),
         const Divider(),
         ...categories.map((category) {
           return ListTile(
             leading: const Icon(Icons.category),
             title: Text(category),
-            selected: _selectedCategory == category,
+            selected: ref.watch(selectedCategoryProvider) == category,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
-            onTap: () => setState(() => _selectedCategory = category),
+            onTap: () =>
+                ref.read(selectedCategoryProvider.notifier).state = category,
           );
         }),
         const Divider(),
-        const Text(
-          'Difficulty',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 20, 12, 12),
+          child: Text(
+            'Difficulty',
+            style: Theme.of(context).textTheme.labelMedium,
           ),
         ),
-        const SizedBox(height: 8),
         _buildDifficultyListTile(DifficultyLevel.easy),
         _buildDifficultyListTile(DifficultyLevel.medium),
         _buildDifficultyListTile(DifficultyLevel.hard),
       ],
     );
   }
-  
+
   Widget _buildDifficultyListTile(DifficultyLevel level) {
     final icons = {
       DifficultyLevel.easy: Icons.sentiment_satisfied,
       DifficultyLevel.medium: Icons.sentiment_neutral,
       DifficultyLevel.hard: Icons.whatshot,
     };
-    
+
     return ListTile(
       leading: Icon(icons[level]),
       title: Text(level.name[0].toUpperCase() + level.name.substring(1)),
-      selected: _selectedDifficulty == level,
+      selected: ref.watch(selectedDifficultyProvider) == level,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
       ),
-      onTap: () => setState(() {
-        _selectedDifficulty = _selectedDifficulty == level ? null : level;
-      }),
+      onTap: () {
+        final notifier = ref.read(selectedDifficultyProvider.notifier);
+        notifier.state = notifier.state == level ? null : level;
+      },
     );
   }
-  
+
   Widget _buildDifficultyChip(DifficultyLevel level) {
     final icons = {
       DifficultyLevel.easy: Icons.sentiment_satisfied,
       DifficultyLevel.medium: Icons.sentiment_neutral,
       DifficultyLevel.hard: Icons.whatshot,
     };
-    
+
     return FilterChip(
       avatar: Icon(icons[level], size: 18),
       label: Text(level.name[0].toUpperCase() + level.name.substring(1)),
-      selected: _selectedDifficulty == level,
+      selected: ref.watch(selectedDifficultyProvider) == level,
       onSelected: (selected) {
-        setState(() {
-          _selectedDifficulty = selected ? level : null;
-        });
+        ref.read(selectedDifficultyProvider.notifier).state =
+            selected ? level : null;
       },
     );
   }
-  
-  Widget _buildRecipeGrid(List<Recipe> recipes, double screenWidth) {
+
+  Widget _buildRecipeGrid(List<Recipe> recipes, double availableWidth) {
+    // Cap the measure so cards stay a comfortable reading width on large
+    // displays instead of stretching into a four-across sprawl.
+    final contentWidth = availableWidth > AppTheme.maxContentWidth
+        ? AppTheme.maxContentWidth
+        : availableWidth;
+
     int crossAxisCount = 1;
-    if (screenWidth > 1400) {
-      crossAxisCount = 4;
-    } else if (screenWidth > 1000) {
+    if (contentWidth > 1000) {
       crossAxisCount = 3;
-    } else if (screenWidth > 600) {
+    } else if (contentWidth > 640) {
       crossAxisCount = 2;
     }
-    
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        childAspectRatio: 0.75,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
+
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: AppTheme.maxContentWidth),
+        child: GridView.builder(
+          padding: const EdgeInsets.all(24),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            childAspectRatio: 0.82,
+            crossAxisSpacing: 20,
+            mainAxisSpacing: 20,
+          ),
+          itemCount: recipes.length,
+          itemBuilder: (context, index) => _buildRecipeCard(recipes[index]),
+        ),
       ),
-      itemCount: recipes.length,
-      itemBuilder: (context, index) {
-        final recipe = recipes[index];
-        return _buildRecipeCard(recipe);
-      },
     );
   }
-  
+
   Widget _buildRecipeCard(Recipe recipe) {
-    final hasImage = recipe.imageUrl != null && recipe.imageUrl!.isNotEmpty;
-    
-    return Card(
-      child: InkWell(
-        onTap: () => context.push('/recipe/${recipe.firestoreId ?? recipe.id}', extra: recipe),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Image or placeholder
-            Expanded(
-              flex: 3,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  if (hasImage)
-                    Image.network(
-                      recipe.imageUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return _buildImagePlaceholder(recipe);
-                      },
-                    )
-                  else
-                    _buildImagePlaceholder(recipe),
-                  
-                  // Favorite badge
-                  if (recipe.isFavorite)
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 4,
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.favorite,
-                          color: Colors.white,
-                          size: 16,
-                        ),
-                      ),
-                    ),
-                  
-                  // Difficulty badge
-                  Positioned(
-                    bottom: 8,
-                    left: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: _getDifficultyColor(recipe.difficulty),
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 4,
-                          ),
-                        ],
-                      ),
-                      child: Text(
-                        recipe.difficulty.name.toUpperCase(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            // Recipe details
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      recipe.title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    if (recipe.description.isNotEmpty)
-                      Text(
-                        recipe.description,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    const Spacer(),
-                    Row(
-                      children: [
-                        if (recipe.prepTimeMinutes != null) ...[
-                          const Icon(Icons.access_time, size: 14),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${recipe.prepTimeMinutes}m',
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                        ],
-                        if (recipe.cookTimeMinutes != null) ...[
-                          const SizedBox(width: 12),
-                          const Icon(Icons.local_fire_department, size: 14),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${recipe.cookTimeMinutes}m',
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                        ],
-                        const Spacer(),
-                        Icon(
-                          Icons.people,
-                          size: 14,
-                          color: Colors.grey[600],
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${recipe.servings}',
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+    return RecipeCard(
+      recipe: recipe,
+      onTap: () => context.push(
+        '/recipe/${recipe.firestoreId}',
+        extra: recipe,
       ),
     );
   }
-  
-  Widget _buildImagePlaceholder(Recipe recipe) {
-    final colors = [
-      Colors.blue[100]!,
-      Colors.green[100]!,
-      Colors.orange[100]!,
-      Colors.purple[100]!,
-      Colors.red[100]!,
-    ];
-    
-    return Container(
-      color: colors[recipe.id % colors.length],
-      child: const Center(
-        child: Icon(
-          Icons.restaurant,
-          size: 64,
-          color: Colors.white70,
-        ),
-      ),
-    );
-  }
-  
-  Color _getDifficultyColor(DifficultyLevel level) {
-    switch (level) {
-      case DifficultyLevel.easy:
-        return Colors.green;
-      case DifficultyLevel.medium:
-        return Colors.orange;
-      case DifficultyLevel.hard:
-        return Colors.red;
-    }
-  }
-  
+
   Widget _buildEmptyState() {
     return Center(
       child: Column(
@@ -637,25 +495,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         children: [
           Icon(
             Icons.restaurant_menu,
-            size: 80,
-            color: Colors.grey[300],
+            size: 44,
+            color: Theme.of(context).colorScheme.outline,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Text(
             'No recipes found',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[600],
-            ),
+            style: Theme.of(context).textTheme.headlineSmall,
           ),
           const SizedBox(height: 8),
           Text(
-            'Sign in to create recipes or import existing ones',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[500],
-            ),
+            'Sign in to create a recipe, or import an existing collection.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -666,7 +520,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     try {
       final firestoreService = ref.read(firestoreServiceProvider);
       final recipes = await _importExportService.importRecipes();
-      
+
       if (recipes.isEmpty) {
         return;
       }
@@ -677,23 +531,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         final id = await firestoreService.addRecipe(recipe);
         if (id != null) successCount++;
       }
-      
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Imported $successCount of ${recipes.length} recipe(s)'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        SnackBarHelper.showSuccess(
+            context, 'Imported $successCount of ${recipes.length} recipe(s).');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error importing: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        SnackBarHelper.showError(context, 'Import failed: $e');
       }
     }
   }
@@ -702,34 +547,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     try {
       final recipesAsync = ref.read(recipesStreamProvider);
       final recipes = recipesAsync.value ?? [];
-      
+
       if (recipes.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No recipes to export')),
-          );
+          SnackBarHelper.showInfo(context, 'There are no recipes to export.');
         }
         return;
       }
 
       await _importExportService.exportAllRecipes(recipes);
-      
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Exported ${recipes.length} recipe(s)'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        SnackBarHelper.showSuccess(
+            context, 'Exported ${recipes.length} recipe(s).');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error exporting: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        SnackBarHelper.showError(context, 'Export failed: $e');
       }
     }
   }
@@ -759,34 +593,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             onPressed: () async {
               Navigator.pop(context);
               final authService = ref.read(authServiceProvider);
-              
+
               try {
                 final result = await authService.signInWithGoogle();
                 if (result != null && mounted) {
                   final user = result.user;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Welcome, ${user?.displayName ?? user?.email ?? 'User'}!'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
+                  SnackBarHelper.showSuccess(context,
+                      'Welcome, ${user?.displayName ?? user?.email ?? 'friend'}.');
                 } else if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Sign-in was cancelled'),
-                      backgroundColor: Colors.orange,
-                    ),
-                  );
+                  SnackBarHelper.showWarning(context, 'Sign-in was cancelled.');
                 }
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Sign-in failed: ${e.toString()}'),
-                      backgroundColor: Colors.red,
-                      duration: const Duration(seconds: 5),
-                    ),
-                  );
+                  SnackBarHelper.showError(context, 'Sign-in failed: $e');
                 }
               }
             },
@@ -801,7 +620,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   /// Show options for adding a recipe
   void _showAddRecipeOptions(BuildContext context) {
     final isGeminiEnabled = ref.read(isGeminiEnabledProvider);
-    
+
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -821,13 +640,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   Text(
                     'Add New Recipe',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
-              
+
               // Step-by-step editor
               ListTile(
                 leading: Container(
@@ -839,29 +658,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   child: const Icon(Icons.edit_note),
                 ),
                 title: const Text('Step-by-Step Editor'),
-                subtitle: const Text('Create recipe manually with full control'),
+                subtitle:
+                    const Text('Create recipe manually with full control'),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                 onTap: () {
                   Navigator.pop(context);
                   context.push('/recipe/new');
                 },
               ),
-              
+
               const SizedBox(height: 12),
-              
+
               // Quick paste with AI
               ListTile(
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: isGeminiEnabled 
-                      ? Colors.amber.shade100
-                      : Colors.grey.shade200,
+                    color: isGeminiEnabled
+                        ? Theme.of(context).colorScheme.tertiaryContainer
+                        : Theme.of(context).colorScheme.surfaceContainerHigh,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     Icons.auto_awesome,
-                    color: isGeminiEnabled ? Colors.amber.shade700 : Colors.grey,
+                    size: 20,
+                    color: isGeminiEnabled
+                        ? Theme.of(context).colorScheme.onTertiaryContainer
+                        : Theme.of(context).colorScheme.outline,
                   ),
                 ),
                 title: Row(
@@ -869,25 +692,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     const Text('Quick Paste Import'),
                     if (isGeminiEnabled) ...[
                       const SizedBox(width: 8),
-                      const Icon(Icons.verified, size: 16, color: Colors.green),
+                      Icon(Icons.verified,
+                          size: 16, color: context.statusColors.success),
                     ],
                   ],
                 ),
                 subtitle: Text(
                   isGeminiEnabled
-                    ? '🏴‍☠️ Paste entire recipe - AI structures it for ye'
-                    : 'Requires Gemini API key in gemini_config.dart',
+                      ? 'Paste a whole recipe and let AI structure it'
+                      : 'Requires a Gemini API key in Remote Config',
                 ),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                 enabled: isGeminiEnabled,
                 onTap: isGeminiEnabled
-                  ? () {
-                      Navigator.pop(context);
-                      _showQuickPasteImport(context);
-                    }
-                  : null,
+                    ? () {
+                        Navigator.pop(context);
+                        _showQuickPasteImport(context);
+                      }
+                    : null,
               ),
-              
+
               const SizedBox(height: 8),
             ],
           ),
@@ -900,17 +724,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Future<void> _showQuickPasteImport(BuildContext context) async {
     final controller = TextEditingController();
     bool isProcessing = false;
-    
+
     await showDialog(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.auto_awesome, color: Colors.amber, size: 28),
-              SizedBox(width: 12),
-              Expanded(
+              Icon(Icons.auto_awesome,
+                  color: Theme.of(context).colorScheme.tertiary, size: 22),
+              const SizedBox(width: 12),
+              const Expanded(
                 child: Text('Quick Paste Import'),
               ),
             ],
@@ -921,7 +746,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  '🏴‍☠️ Paste yer entire recipe below - ingredients, steps, servings, everything! '
+                  'Paste your entire recipe below — ingredients, steps, servings, everything. '
                   'The AI will structure it into a proper recipe with both customary and metric units.',
                   style: TextStyle(fontSize: 14),
                 ),
@@ -930,7 +755,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   controller: controller,
                   decoration: const InputDecoration(
                     labelText: 'Paste Recipe Here',
-                    hintText: 'Title: Chocolate Chip Cookies\n\nIngredients:\n- 2 cups flour\n- 1 cup sugar\n...',
+                    hintText:
+                        'Title: Chocolate Chip Cookies\n\nIngredients:\n- 2 cups flour\n- 1 cup sugar\n...',
                     border: OutlineInputBorder(),
                     alignLabelWithHint: true,
                   ),
@@ -943,7 +769,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   const LinearProgressIndicator(),
                   const SizedBox(height: 8),
                   const Text(
-                    '🏴‍☠️ The AI be workin\' its magic...',
+                    'Extracting your recipe...',
                     style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
                     textAlign: TextAlign.center,
                   ),
@@ -953,75 +779,54 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: isProcessing ? null : () => Navigator.pop(dialogContext),
+              onPressed:
+                  isProcessing ? null : () => Navigator.pop(dialogContext),
               child: const Text('Cancel'),
             ),
             FilledButton.icon(
               onPressed: isProcessing || controller.text.trim().isEmpty
-                ? null
-                : () async {
-                    final text = controller.text.trim();
-                    setDialogState(() => isProcessing = true);
-                    
-                    try {
-                      // Extract recipe using Gemini
-                      final recipe = await ref.read(
-                        extractRecipeFromTextProvider(text).future,
-                      );
-                      
-                      if (!context.mounted) return;
-                      
-                      if (recipe == null) {
-                        Navigator.pop(dialogContext);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('🏴‍☠️ Could not extract recipe. Try again with more details.'),
-                            backgroundColor: Colors.orange,
-                          ),
+                  ? null
+                  : () async {
+                      final text = controller.text.trim();
+                      setDialogState(() => isProcessing = true);
+
+                      try {
+                        // Extract recipe using Gemini
+                        final recipe = await ref.read(
+                          extractRecipeFromTextProvider(text).future,
                         );
-                        return;
+
+                        if (!context.mounted) return;
+
+                        if (recipe == null) {
+                          Navigator.pop(dialogContext);
+                          SnackBarHelper.showWarning(context,
+                              'Could not extract a recipe. Try again with more detail.');
+                          return;
+                        }
+
+                        // Save the recipe
+                        final firestoreService =
+                            ref.read(firestoreServiceProvider);
+                        final authService = ref.read(authServiceProvider);
+                        final user = authService.currentUser;
+
+                        if (user != null) {
+                          await firestoreService.addRecipe(recipe);
+                        }
+
+                        Navigator.pop(dialogContext);
+
+                        if (!context.mounted) return;
+
+                        SnackBarHelper.showSuccess(context,
+                            'Added "${recipe.title}" to your collection.');
+                      } catch (e) {
+                        if (!context.mounted) return;
+                        Navigator.pop(dialogContext);
+                        SnackBarHelper.showError(context, 'Import failed: $e');
                       }
-                      
-                      // Save the recipe
-                      final firestoreService = ref.read(firestoreServiceProvider);
-                      final authService = ref.read(authServiceProvider);
-                      final user = authService.currentUser;
-                      
-                      if (user != null) {
-                        await firestoreService.addRecipe(recipe);
-                      }
-                      
-                      Navigator.pop(dialogContext);
-                      
-                      if (!context.mounted) return;
-                      
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('🏴‍☠️ Recipe "${recipe.title}" added to yer collection!'),
-                          backgroundColor: Colors.green,
-                          action: SnackBarAction(
-                            label: 'View',
-                            textColor: Colors.white,
-                            onPressed: () {
-                              // Navigate to recipe detail if it has an ID
-                              if (recipe.firestoreId != null) {
-                                context.push('/recipe/${recipe.firestoreId}');
-                              }
-                            },
-                          ),
-                        ),
-                      );
-                    } catch (e) {
-                      if (!context.mounted) return;
-                      Navigator.pop(dialogContext);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('🏴‍☠️ Import failed: $e'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  },
+                    },
               icon: const Icon(Icons.auto_awesome),
               label: const Text('Import Recipe'),
             ),
@@ -1029,7 +834,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
       ),
     );
-    
+
     controller.dispose();
   }
 }

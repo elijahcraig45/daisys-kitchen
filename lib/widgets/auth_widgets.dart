@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:recipe_keeper/theme/app_theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:recipe_keeper/providers/firebase_providers.dart';
 
@@ -63,10 +64,10 @@ class AuthAppBar extends ConsumerWidget implements PreferredSizeWidget {
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         if (authService.isAdmin)
-                          const Text(
+                          Text(
                             'Admin',
                             style: TextStyle(
-                              color: Colors.green,
+                              color: context.statusColors.success,
                               fontSize: 12,
                             ),
                           ),
@@ -125,7 +126,7 @@ class AuthAppBar extends ConsumerWidget implements PreferredSizeWidget {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Welcome, ${authService.displayName}!'),
-                    backgroundColor: Colors.green,
+                    backgroundColor: context.statusColors.success,
                   ),
                 );
               }

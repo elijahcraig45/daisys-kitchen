@@ -1,10 +1,8 @@
-import 'package:isar/isar.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'ingredient.g.dart';
 
 @JsonSerializable()
-@embedded
 class Ingredient {
   late String name;
   late String amount;

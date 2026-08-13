@@ -1,36 +1,35 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// User-friendly error messages for common Firebase and app errors
-/// Translates technical errors into pirate-themed, helpful messages
+/// Translates technical errors into clear, actionable messages
 class ErrorMessages {
   /// Get user-friendly error message from Firebase Auth exception
   static String fromFirebaseAuthException(FirebaseAuthException e) {
     switch (e.code) {
       case 'user-not-found':
-        return 'No account found with these credentials, matey. Time to sign up!';
+        return 'No account found with these credentials. Try signing up instead.';
       case 'wrong-password':
-        return 'Wrong password, sailor! Try again or reset yer password.';
+        return 'Incorrect password. Try again or reset your password.';
       case 'email-already-in-use':
-        return 'This email be already registered. Try signing in instead!';
+        return 'That email is already registered. Try signing in instead.';
       case 'invalid-email':
-        return 'That email address doesn\'t look right, captain.';
+        return 'That email address does not look valid.';
       case 'weak-password':
-        return 'Yer password be too weak! Make it stronger to protect yer recipes.';
+        return 'That password is too weak. Please choose a stronger one.';
       case 'operation-not-allowed':
-        return 'This sign-in method is not allowed. Contact support, matey.';
+        return 'This sign-in method is not enabled. Please contact support.';
       case 'user-disabled':
-        return 'This account has been disabled. Walk the plank? Contact support!';
+        return 'This account has been disabled. Please contact support.';
       case 'network-request-failed':
-        return 'No wind in the sails! Check yer internet connection.';
+        return 'No connection. Check your internet and try again.';
       case 'too-many-requests':
-        return 'Too many attempts, sailor! Take a breather and try again later.';
+        return 'Too many attempts. Please wait a moment and try again.';
       case 'popup-closed-by-user':
-        return 'Sign-in cancelled. Come back when ye\'re ready!';
+        return 'Sign-in cancelled.';
       case 'account-exists-with-different-credential':
         return 'An account already exists with this email but different credentials.';
       default:
-        return 'Shiver me timbers! Sign-in failed: ${e.message ?? "Unknown error"}';
+        return 'Sign-in failed: ${e.message ?? "unknown error"}';
     }
   }
 
@@ -38,33 +37,33 @@ class ErrorMessages {
   static String fromFirestoreException(FirebaseException e) {
     switch (e.code) {
       case 'permission-denied':
-        return 'Ye don\'t have permission for this operation. Sign in or check yer credentials!';
+        return 'You do not have permission for this action. Try signing in again.';
       case 'not-found':
-        return 'The requested recipe has sailed away (not found).';
+        return 'That recipe could not be found.';
       case 'already-exists':
-        return 'This recipe already exists in the galley!';
+        return 'That recipe already exists.';
       case 'resource-exhausted':
-        return 'Too many requests, sailor! The kitchen is overwhelmed. Try again shortly.';
+        return 'Too many requests. Please try again shortly.';
       case 'failed-precondition':
-        return 'Operation failed - check the recipe requirements.';
+        return 'The action could not be completed. Check the recipe details.';
       case 'aborted':
-        return 'Operation was aborted. The seas were too rough - try again!';
+        return 'The action was interrupted. Please try again.';
       case 'out-of-range':
-        return 'Invalid data range. Check yer inputs, matey!';
+        return 'One of the values is out of range. Please check your input.';
       case 'unimplemented':
-        return 'This feature hasn\'t been built yet. Stay tuned!';
+        return 'This feature is not available yet.';
       case 'internal':
-        return 'The ship\'s systems encountered an error. Our crew is on it!';
+        return 'An internal error occurred. Please try again later.';
       case 'unavailable':
-        return 'The galley is temporarily closed. Check yer connection or try again!';
+        return 'The service is temporarily unavailable. Please try again.';
       case 'data-loss':
-        return 'Blimey! Data may have been lost. Contact support immediately!';
+        return 'Data may have been lost. Please contact support.';
       case 'unauthenticated':
-        return 'Ye need to sign in first, sailor!';
+        return 'Please sign in to continue.';
       case 'deadline-exceeded':
-        return 'Operation took too long - the tide has turned. Try again!';
+        return 'That took too long to complete. Please try again.';
       case 'cancelled':
-        return 'Operation was cancelled. No harm done!';
+        return 'The action was cancelled.';
       default:
         return 'Database error: ${e.message ?? "Unknown error"}';
     }
@@ -72,42 +71,42 @@ class ErrorMessages {
 
   /// Generic error message for network issues
   static String networkError() {
-    return 'Can\'t reach the open seas! Check yer internet connection and try again.';
+    return 'No connection. Check your internet and try again.';
   }
 
   /// Generic error message for validation errors
   static String validationError(String field) {
-    return 'The $field needs fixin\', captain! Check the requirements.';
+    return 'Please check the $field and try again.';
   }
 
   /// Success message for recipe operations
   static String recipeCreated() {
-    return 'Recipe added to the galley! Bon appétit, matey! 🏴‍☠️';
+    return 'Recipe added to your collection.';
   }
 
   static String recipeUpdated() {
-    return 'Recipe updated successfully! The crew will love this! ⚓';
+    return 'Recipe updated.';
   }
 
   static String recipeDeleted() {
-    return 'Recipe sent to Davy Jones\' locker (deleted).';
+    return 'Recipe deleted.';
   }
 
   static String recipeImported(int count) {
-    return 'Ahoy! Imported $count recipe${count == 1 ? '' : 's'} into the galley! 🍴';
+    return 'Imported $count recipe${count == 1 ? '' : 's'}.';
   }
 
   static String recipeExported(int count) {
-    return 'Exported $count recipe${count == 1 ? '' : 's'} for safekeeping! 📦';
+    return 'Exported $count recipe${count == 1 ? '' : 's'}.';
   }
 
   /// Generic success message
   static String success(String operation) {
-    return '$operation completed successfully! Fair winds and following seas! ⛵';
+    return '$operation completed.';
   }
 
   /// Generic error message
   static String genericError() {
-    return 'Shiver me timbers! Something went wrong. Try again or contact the crew.';
+    return 'Something went wrong. Please try again.';
   }
 }

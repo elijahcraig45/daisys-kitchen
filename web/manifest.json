@@ -1,11 +1,11 @@
 {
-    "name": "recipe_keeper",
-    "short_name": "recipe_keeper",
+    "name": "Daisy's Kitchen",
+    "short_name": "Daisy's Kitchen",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Recipes worth keeping — collect, search and cook from your own recipe book.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

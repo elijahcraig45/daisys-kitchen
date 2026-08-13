@@ -18,7 +18,7 @@ class DeepLinkService {
   // ignore: unused_field
   static StreamSubscription? _linkSubscription;
   // ignore: unused_field
-  static bool _hasProcessedInitialUri = false;
+  static final bool _hasProcessedInitialUri = false;
 
   /// Initialize deep linking and listen for incoming links
   static Future<void> initialize({

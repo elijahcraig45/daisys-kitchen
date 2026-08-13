@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:recipe_keeper/theme/app_theme.dart';
 import 'package:recipe_keeper/models/recipe.dart';
 import 'package:recipe_keeper/models/recipe_step.dart';
 import 'package:recipe_keeper/models/ingredient.dart';
@@ -313,7 +314,7 @@ class _CookingModeScreenState extends State<CookingModeScreen> {
         color: Theme.of(context).scaffoldBackgroundColor,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Theme.of(context).colorScheme.shadow,
             blurRadius: 4,
             offset: const Offset(0, -2),
           ),
@@ -380,8 +381,8 @@ class _CookingModeScreenState extends State<CookingModeScreen> {
                 icon: const Icon(Icons.check_circle),
                 label: const Text('Complete'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
+                  backgroundColor: context.statusColors.success,
+                  foregroundColor: context.statusColors.onStatus,
                   padding: const EdgeInsets.all(16),
                 ),
               ),

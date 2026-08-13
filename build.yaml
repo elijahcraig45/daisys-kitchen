@@ -1,8 +1,5 @@
 targets:
   $default:
     builders:
-      # Only run json_serializable, skip isar_generator for web compatibility
       json_serializable:
         enabled: true
-      isar_generator:
-        enabled: false

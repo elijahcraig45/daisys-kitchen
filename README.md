@@ -1,284 +1,172 @@
-# 🍳 Recipe Keeper - Modern Recipe Management
+# 🍳 Daisy's Kitchen
 
-A full-stack Flutter web application for managing and organizing recipes with AI-powered features, real-time cloud sync, and an intuitive cooking mode interface.
+A Flutter web app for collecting, searching and cooking from your own recipe book, with
+AI-assisted recipe capture and real-time cloud sync.
 
-**✨ [Live Demo](https://recipe-f644f.web.app)** ✨
+**[recipe-f644f.web.app](https://recipe-f644f.web.app)**
 
 <div align="center">
-  
-[![Flutter](https://img.shields.io/badge/Flutter-3.24+-02569B?logo=flutter)](https://flutter.dev)
+
+[![Flutter](https://img.shields.io/badge/Flutter-3.41+-02569B?logo=flutter)](https://flutter.dev)
 [![Firebase](https://img.shields.io/badge/Firebase-Cloud-FFCA28?logo=firebase)](https://firebase.google.com)
 [![Gemini AI](https://img.shields.io/badge/Gemini-AI%20Powered-4285F4?logo=google)](https://ai.google.dev)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](#license)
 
 </div>
 
 ---
 
-## 🎯 Key Features
+## Features
 
-### 🤖 AI-Powered Intelligence
-- **Smart Recipe Extraction**: Paste any recipe URL or raw text - Gemini AI automatically extracts structured data with both customary and metric measurements
-- **Grammar Enhancement**: AI-powered verification fixes typos, improves clarity, and standardizes formatting
-- **Dual Unit Conversion**: Automatically adds metric equivalents to US measurements (cups → ml, oz → grams, etc.)
+### Recipe capture
+- **AI extraction** — paste a recipe URL or raw text and Gemini structures it into
+  ingredients, steps, timings and servings.
+- **HTML fallback** — when AI is unavailable, Tasty Recipes print layouts are parsed
+  directly, via a Cloud Function proxy that works around browser CORS.
+- **Grammar and unit clean-up** — an AI pass tidies phrasing and adds metric
+  equivalents alongside customary measurements.
 
-### 🔥 Core Functionality
-- **Cloud Sync**: Real-time synchronization across all devices via Firebase Firestore
-- **Cooking Mode**: Distraction-free, step-by-step walkthrough with integrated timers
-- **Import/Export**: JSON-based backup and sharing of your recipe collection
-- **Smart Search**: Filter by category, cuisine, difficulty, favorites, or free text
-- **Responsive Design**: Optimized for desktop, tablet, and mobile browsers
-
-### 🎨 User Experience
-- **Modern Material Design 3** with custom color theming
-- **Offline-First Architecture**: Works without internet, syncs when connected
-- **Google Sign-In**: Secure authentication with Firebase Auth
-- **Private by Default**: Firestore security rules ensure recipes are user-scoped
-
----
-
-## 🏗️ Architecture & Technical Stack
-
-### Frontend
-- **Flutter 3.24+** with Material Design 3
-- **Riverpod 2.6+** for state management and dependency injection
-- **GoRouter** for declarative navigation and deep linking
-- **Progressive Web App** with service worker caching
-
-### Backend & Services
-- **Firebase Firestore** - NoSQL cloud database with real-time sync
-- **Firebase Authentication** - Google OAuth integration
-- **Firebase Hosting** - Global CDN for web deployment
-- **Firebase Remote Config** - Dynamic configuration (AI API keys)
-- **Google Gemini AI** - Recipe extraction and enhancement (free tier)
-
-### Data Layer
-- **Isar-Compatible Models** with JSON serialization
-- **Build Runner** for code generation
-- **Conditional Imports** for web/native platform abstractions
-
-### CI/CD
-- **GitHub Actions** automated deployment pipeline
-- **Firebase Tools** for hosting and Firestore rules
-- **Secrets Management** via GitHub environment variables
+### Everyday use
+- **Cooking mode** — distraction-free, step-by-step walkthrough with built-in timers.
+- **Search** — matches recipe names, ingredients, tags, descriptions, categories and
+  cuisines, with category, difficulty and favourites filters.
+- **Import / export** — JSON backup and sharing of your collection.
+- **Cloud sync** — real-time updates across devices via Firestore, with offline
+  persistence enabled so the app keeps working without a connection.
+- **Light and dark themes**, following your system setting.
 
 ---
 
-## 🚀 Quick Start
+## Tech stack
 
-### For End Users
+| Layer | Choice |
+|---|---|
+| UI | Flutter (Material 3), custom theme in `lib/theme/app_theme.dart` |
+| State | Riverpod — all filter state lives in providers, not widget state |
+| Routing | GoRouter |
+| Data | Cloud Firestore (single `recipes` collection), real-time streams |
+| Auth | Firebase Auth, Google sign-in |
+| Config | Firebase Remote Config (Gemini keys) |
+| AI | Google Gemini |
+| Hosting | Firebase Hosting, deployed by GitHub Actions |
 
-Simply visit **[recipe-f644f.web.app](https://recipe-f644f.web.app)** and sign in with Google to start managing your recipes immediately.
+`RecipeMapper` (`lib/services/recipe_mapper.dart`) owns the Firestore document shape and
+is kept free of Firebase singletons so it can be unit tested. Note that
+`Recipe.toJson()` is a *separate* representation used by import/export — changing the
+model means updating both.
 
-### For Developers
+---
 
-#### Prerequisites
-- [Flutter SDK](https://flutter.dev/docs/get-started/install) 3.24.0+
-- [Firebase](https://console.firebase.google.com/) account
-- [Git](https://git-scm.com/)
-- (Optional) [Gemini API Key](https://makersuite.google.com/app/apikey) for AI features
+## Getting started
 
-#### Installation
+### Prerequisites
+- Flutter SDK 3.24+ (developed against 3.41)
+- A Firebase project
+- Optionally, a [Gemini API key](https://aistudio.google.com/app/apikey) for AI features
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/recipe-keeper.git
-   cd recipe-keeper
-   ```
+### Setup
 
-2. **Install dependencies**
+1. **Install dependencies**
    ```bash
    flutter pub get
    ```
 
-3. **Configure Firebase**
-
-   Create a Firebase project with:
-   - **Authentication** → Enable Google Sign-In provider
-   - **Firestore Database** → Start in production mode
-   - **Hosting** → Initialize for web deployment
-   - **Remote Config** (optional) → For AI features
-
-4. **Set up environment files**
-
+2. **Generate code** — `*.g.dart` files are gitignored, so this is required before the
+   first build and after any model change:
    ```bash
-   # Copy templates
+   dart run build_runner build --delete-conflicting-outputs
+   ```
+
+3. **Configure Firebase** — enable Google sign-in, create a Firestore database, and
+   initialise Hosting. Then fill in the two gitignored config files from their
+   templates:
+   ```bash
    cp lib/services/firebase_service.template.dart lib/services/firebase_service.dart
    cp lib/services/admin_config.template.dart lib/services/admin_config.dart
    ```
+   `firebase_service.dart` holds your Firebase project config; `admin_config.dart`
+   lists admin email addresses.
 
-   Edit with your credentials:
-   - `firebase_service.dart`: Firebase project configuration
-   - `admin_config.dart`: Admin email list
+4. **Configure Gemini (optional)** — keys are read from **Firebase Remote Config**, not
+   from a file. In the Firebase console add:
 
-5. **Configure Gemini AI (Optional)**
+   | Parameter | Value |
+   |---|---|
+   | `gemini_api_key` | your API key |
+   | `gemini_model` | e.g. `gemini-2.5-flash` |
+   | `gemini_enabled` | `true` |
 
-   For AI-powered recipe extraction:
-   
-   1. Get free API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
-   2. In Firebase Console → Remote Config, add:
-      - Parameter: `gemini_api_key`
-      - Value: Your API key
-      - Default: Empty string
-   3. Publish changes
+   Publish the changes. Without a key the app runs fine; AI features are simply
+   disabled.
 
-   📖 See [GEMINI_SETUP.md](GEMINI_SETUP.md) for detailed setup
-
-6. **Deploy Firestore security rules**
+5. **Deploy the security rules**
    ```bash
    firebase deploy --only firestore:rules
    ```
 
-7. **Run locally**
+6. **Run**
    ```bash
    flutter run -d chrome
    ```
 
-8. **Generate code** (if modifying models)
-   ```bash
-   dart run build_runner watch --delete-conflicting-outputs
-   ```
-
 ---
 
-## 📁 Project Structure
-
-```
-recipe-keeper/
-├── lib/
-│   ├── main.dart                 # App entry point
-│   ├── router.dart               # GoRouter configuration
-│   ├── models/                   # Data models (Recipe, Ingredient, Step)
-│   │   ├── recipe.dart
-│   │   ├── ingredient.dart
-│   │   └── recipe_step.dart
-│   ├── providers/                # Riverpod state management
-│   │   ├── firebase_providers.dart
-│   │   ├── gemini_providers.dart
-│   │   └── recipe_provider.dart
-│   ├── screens/                  # UI screens
-│   │   ├── home_screen.dart
-│   │   ├── recipe_editor_screen.dart
-│   │   ├── recipe_detail_screen.dart
-│   │   └── cooking_mode_screen.dart
-│   ├── services/                 # Business logic & APIs
-│   │   ├── auth_service.dart
-│   │   ├── firestore_service.dart
-│   │   ├── gemini_service.dart
-│   │   ├── remote_config_service.dart
-│   │   ├── import_export_service.dart
-│   │   └── recipe_autofill_service.dart
-│   ├── widgets/                  # Reusable UI components
-│   └── utils/                    # Helpers and utilities
-├── firestore.rules               # Firestore security rules
-├── firebase.json                 # Firebase configuration
-├── .github/workflows/            # CI/CD pipelines
-│   └── deploy.yml
-└── pubspec.yaml                  # Flutter dependencies
-```
-
----
-
-## 🔒 Security & Privacy
-
-- 🔐 **Authentication Required**: All data access requires Google Sign-In
-- 🚫 **User-Scoped Data**: Firestore rules prevent cross-user data access
-- 🔑 **No Credentials in Code**: Sensitive config injected via CI/CD secrets
-- 🛡️ **HTTPS Only**: Enforced by Firebase Hosting
-- 📝 **Audit Trail**: All recipes track creation/update timestamps
-
----
-
-## 🚢 Deployment
-
-### Automated (GitHub Actions)
-
-Push to `main` branch triggers automatic deployment:
+## Development
 
 ```bash
-git push origin main
+flutter test                                              # unit tests
+flutter analyze                                           # static analysis
+dart format lib test                                      # formatting
+dart run build_runner watch --delete-conflicting-outputs  # regenerate on change
 ```
 
-The workflow:
-1. Builds Flutter web release bundle
-2. Injects Firebase credentials from secrets
-3. Runs code generation
-4. Deploys to Firebase Hosting
+Follow [Effective Dart](https://dart.dev/guides/language/effective-dart). Take colours
+from the theme (`Theme.of(context).colorScheme` or the `context.colors` /
+`context.statusColors` extensions) rather than `Colors.*` literals — hardcoded colours
+are what previously broke dark mode. Show user feedback through `SnackBarHelper` and log
+through `LoggerService`.
 
-### Manual Deployment
+---
+
+## Deployment
+
+Pushing to `main` triggers `.github/workflows/deploy.yml`, which writes the two config
+files from GitHub secrets, runs code generation, builds the web bundle and deploys to
+Firebase Hosting.
+
+Hosting is **all** CI deploys. Rules and functions are manual:
 
 ```bash
-# Build production bundle
-flutter build web --release
-
-# Deploy to Firebase
-firebase deploy --only hosting
+firebase deploy --only firestore:rules
+firebase deploy --only functions
+firebase deploy --only hosting        # manual hosting deploy, after flutter build web --release
 ```
 
 ---
 
-## 🧪 Testing
+## Access model
 
-```bash
-# Run unit tests
-flutter test
+This is a **shared** recipe book rather than a set of private collections — worth
+understanding before you put anything sensitive in it:
 
-# Run with coverage
-flutter test --coverage
-
-# Analyze code quality
-flutter analyze
-```
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please follow these guidelines:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Development Guidelines
-
-- Follow [Effective Dart](https://dart.dev/guides/language/effective-dart) style guide
-- Run `flutter analyze` before committing
-- Use `dart format .` for consistent formatting
-- Write tests for new features
-- Update documentation as needed
+- Recipes are **publicly readable**, including by signed-out visitors.
+- Creating a recipe requires signing in, and stamps you as its creator.
+- Editing and deleting are limited to the recipe's creator or an admin. Recipes created
+  before creator tracking existed remain editable by any signed-in user.
+- **Favourites are a shared flag** on the recipe document, not per-user state, so any
+  signed-in user can toggle one and everybody sees the change.
+- Admin status is resolved two ways: `firestore.rules` reads `users/{uid}.isAdmin`,
+  which is written at sign-in from the email list in `admin_config.dart`.
 
 ---
 
-## 📝 License
+## Credits
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Headings are set in [Source Serif 4](https://github.com/adobe-fonts/source-serif) by
+Frank Grießhammer, used under the SIL Open Font License 1.1. The bundled file is
+instanced to a single weight and subset to Latin; the licence is included at
+`assets/fonts/OFL.txt`.
 
----
+## License
 
-## 🙏 Acknowledgments
-
-- **Flutter Team** for the amazing cross-platform framework
-- **Firebase** for backend infrastructure
-- **Google Gemini AI** for intelligent recipe processing
-- **Material Design** for UI/UX guidelines
-- Home cooks everywhere who inspired this project ❤️
-
----
-
-## 📬 Contact & Support
-
-- **Issues**: [GitHub Issues](https://github.com/YOUR_USERNAME/recipe-keeper/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/YOUR_USERNAME/recipe-keeper/discussions)
-
----
-
-<div align="center">
-
-**Made with ❤️ and Flutter** | **Powered by Firebase ☁️**
-
-⭐ Star this repo if you find it useful!
-
-</div>
+MIT. (A `LICENSE` file has not been added to the repository yet.)

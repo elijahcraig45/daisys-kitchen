@@ -3,13 +3,13 @@ class Validators {
   /// Validate recipe title
   static String? validateTitle(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'Avast! A recipe needs a name, matey';
+      return 'Please enter a recipe name';
     }
     if (value.trim().length < 3) {
-      return 'Title be too short - needs at least 3 characters';
+      return 'Name must be at least 3 characters';
     }
     if (value.length > 100) {
-      return 'Title be too long - keep it under 100 characters';
+      return 'Name must be under 100 characters';
     }
     return null;
   }
@@ -17,10 +17,10 @@ class Validators {
   /// Validate recipe description
   static String? validateDescription(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'Tell us about this dish, sailor!';
+      return 'Please add a short description';
     }
     if (value.trim().length < 10) {
-      return 'Description needs more detail - at least 10 characters';
+      return 'Description must be at least 10 characters';
     }
     return null;
   }
@@ -28,17 +28,17 @@ class Validators {
   /// Validate servings
   static String? validateServings(String? value) {
     if (value == null || value.isEmpty) {
-      return 'How many mouths will this feed?';
+      return 'Please enter the number of servings';
     }
     final servings = int.tryParse(value);
     if (servings == null) {
-      return 'Must be a number, not a treasure map!';
+      return 'Servings must be a number';
     }
     if (servings < 1) {
-      return 'Must serve at least 1 hungry pirate';
+      return 'Recipes must serve at least 1';
     }
     if (servings > 1000) {
-      return 'That be too many servings, even for a ship\'s crew!';
+      return 'Servings must be 1000 or fewer';
     }
     return null;
   }
@@ -53,10 +53,10 @@ class Validators {
       return '$field must be a number';
     }
     if (time < 0) {
-      return '$field cannot be negative, we can\'t sail backwards in time!';
+      return '$field cannot be negative';
     }
     if (time > 1440) {
-      return '$field seems a bit long - are ye sure? (max 24 hours)';
+      return '$field must be 24 hours or less';
     }
     return null;
   }
@@ -66,13 +66,13 @@ class Validators {
     if (value == null || value.trim().isEmpty) {
       return null; // URL is optional
     }
-    
+
     final urlPattern = RegExp(
       r'^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$',
     );
-    
-    if (!urlPattern.hasMatch(value)) {
-      return 'That doesn\'t look like a proper URL, matey';
+
+    if (!urlPattern.hasMatch(value.trim())) {
+      return 'Please enter a valid URL';
     }
     return null;
   }
@@ -80,10 +80,10 @@ class Validators {
   /// Validate ingredient name
   static String? validateIngredientName(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'What be this ingredient called?';
+      return 'Please name this ingredient';
     }
     if (value.trim().length < 2) {
-      return 'Ingredient name too short';
+      return 'Ingredient name is too short';
     }
     return null;
   }
@@ -91,7 +91,7 @@ class Validators {
   /// Validate ingredient amount
   static String? validateIngredientAmount(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'How much do we need?';
+      return 'Please enter an amount';
     }
     return null;
   }
@@ -99,7 +99,7 @@ class Validators {
   /// Validate step description
   static String? validateStepDescription(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'Describe this step, sailor!';
+      return 'Please describe this step';
     }
     if (value.trim().length < 5) {
       return 'Step description needs more detail';

@@ -1,8 +1,7 @@
 import 'dart:convert';
 import 'package:recipe_keeper/models/recipe.dart';
 import 'import_export_service_stub.dart'
-    if (dart.library.html) 'import_export_service_web.dart'
-    if (dart.library.io) 'import_export_service_native.dart';
+    if (dart.library.html) 'import_export_service_web.dart';
 
 class ImportExportService {
   // Export a single recipe to JSON

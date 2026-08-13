@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 /// Centralized logging service for the application
 /// Provides structured logging with different severity levels
 class LoggerService {
-  static const String _prefix = '🏴‍☠️';
+  static const String _prefix = '[kitchen]';
   
   /// Log an informational message
   static void info(String message, [String? tag]) {

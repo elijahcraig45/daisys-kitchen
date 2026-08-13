@@ -4,7 +4,7 @@ class AppConstants {
   // App Metadata
   static const String appName = "Daisy's Kitchen";
   static const String appVersion = '1.0.0';
-  static const String appTagline = 'A pirate\'s treasure chest for culinary adventures';
+  static const String appTagline = 'Recipes worth keeping';
   
   // Performance
   static const Duration searchDebounceDelay = Duration(milliseconds: 300);
@@ -56,31 +56,25 @@ class AppConstants {
   static const String cacheKey = 'recipe_cache';
   
   // Error Messages
-  static const String genericErrorMessage = 'Shiver me timbers! Something went wrong.';
-  static const String networkErrorMessage = 'Can\'t reach the open seas! Check yer internet.';
-  static const String authErrorMessage = 'Authentication failed, matey. Try again!';
+  static const String genericErrorMessage = 'Something went wrong. Please try again.';
+  static const String networkErrorMessage = 'No connection. Check your internet and try again.';
+  static const String authErrorMessage = 'Sign-in failed. Please try again.';
   
   // Success Messages
-  static const String recipeSavedMessage = 'Recipe saved to the galley! 🏴‍☠️';
-  static const String recipeDeletedMessage = 'Recipe sent to Davy Jones\' locker!';
-  static const String recipeImportedMessage = 'Recipes imported successfully! ⚓';
+  static const String recipeSavedMessage = 'Recipe saved.';
+  static const String recipeDeletedMessage = 'Recipe deleted.';
+  static const String recipeImportedMessage = 'Recipes imported.';
   
-  // Pirate Themed Messages
   static const List<String> loadingMessages = [
-    'Hoisting the sails...',
-    'Navigating the seven seas...',
-    'Charting the course...',
-    'Loading the cargo...',
-    'Preparing the galley...',
-    'Swabbing the deck...',
-    'Setting sail...',
+    'Gathering your recipes...',
+    'Setting the table...',
+    'Just a moment...',
   ];
-  
+
   static const List<String> emptyStateMessages = [
-    'No recipes yet, matey!',
-    'The galley be empty!',
-    'No treasure here yet!',
-    'Time to stock the pantry!',
+    'No recipes yet',
+    'Your collection is empty',
+    'Nothing here yet',
   ];
   
   // Keyboard Shortcuts Help Text

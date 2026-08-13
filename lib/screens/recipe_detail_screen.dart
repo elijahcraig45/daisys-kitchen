@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:recipe_keeper/models/ingredient.dart';
 import 'package:recipe_keeper/models/recipe.dart';
 import 'package:recipe_keeper/providers/firebase_providers.dart';
+import 'package:recipe_keeper/theme/app_theme.dart';
 
 class RecipeDetailScreen extends ConsumerStatefulWidget {
   final String recipeId;
@@ -31,11 +32,12 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     setState(() => _isLoading = true);
     final firestoreService = ref.read(firestoreServiceProvider);
     final recipe = await firestoreService.getRecipeById(widget.recipeId);
-    if (mounted)
+    if (mounted) {
       setState(() {
         _currentRecipe = recipe;
         _isLoading = false;
       });
+    }
   }
 
   @override
@@ -59,22 +61,31 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     final theme = Theme.of(context);
     final totalTime =
         (recipe.prepTimeMinutes ?? 0) + (recipe.cookTimeMinutes ?? 0);
+    final hasImage = recipe.imageUrl != null && recipe.imageUrl!.isNotEmpty;
 
     return Scaffold(
       body: CustomScrollView(
         slivers: [
           // App bar with image
           SliverAppBar(
-            expandedHeight: recipe.imageUrl != null ? 300 : 120,
+            expandedHeight: hasImage ? 300 : 120,
             pinned: true,
+            // Over a photo the bar sits on a dark scrim, so its contents have to
+            // invert; without one it follows the theme like any other app bar.
+            foregroundColor: hasImage ? AppSemanticColors.onScrim : null,
             flexibleSpace: FlexibleSpaceBar(
               title: Text(
                 recipe.title,
-                style: const TextStyle(
-                  shadows: [Shadow(color: Colors.black54, blurRadius: 8)],
-                ),
+                style: hasImage
+                    ? theme.textTheme.titleLarge?.copyWith(
+                        color: AppSemanticColors.onScrim,
+                        shadows: const [
+                          Shadow(color: Color(0xCC000000), blurRadius: 8),
+                        ],
+                      )
+                    : theme.textTheme.titleLarge,
               ),
-              background: recipe.imageUrl != null
+              background: hasImage
                   ? Stack(
                       fit: StackFit.expand,
                       children: [
@@ -121,7 +132,9 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
               IconButton(
                 icon: Icon(
                   recipe.isFavorite ? Icons.favorite : Icons.favorite_border,
-                  color: recipe.isFavorite ? Colors.red : null,
+                  color: recipe.isFavorite
+                      ? Theme.of(context).colorScheme.secondary
+                      : null,
                 ),
                 tooltip: recipe.isFavorite
                     ? 'Remove from favorites'
@@ -136,8 +149,8 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
               ),
               PopupMenuButton(
                 icon: const Icon(Icons.more_vert),
-                itemBuilder: (c) => const [
-                  PopupMenuItem(
+                itemBuilder: (c) => [
+                  const PopupMenuItem(
                     value: 'edit',
                     child: Row(
                       children: [
@@ -151,9 +164,12 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                     value: 'delete',
                     child: Row(
                       children: [
-                        Icon(Icons.delete, color: Colors.red),
-                        SizedBox(width: 8),
-                        Text('Delete', style: TextStyle(color: Colors.red)),
+                        Icon(Icons.delete_outline,
+                            color: Theme.of(context).colorScheme.error),
+                        const SizedBox(width: 8),
+                        Text('Delete',
+                            style: TextStyle(
+                                color: Theme.of(context).colorScheme.error)),
                       ],
                     ),
                   ),
@@ -183,7 +199,8 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                           FilledButton(
                             onPressed: () => Navigator.pop(c, true),
                             style: FilledButton.styleFrom(
-                              backgroundColor: Colors.red,
+                              backgroundColor:
+                                  Theme.of(context).colorScheme.error,
                             ),
                             child: const Text('Delete'),
                           ),
@@ -208,387 +225,394 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
 
           // Content
           SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Quick info cards
-                  Row(
+            child: Center(
+              child: ConstrainedBox(
+                constraints:
+                    const BoxConstraints(maxWidth: AppTheme.maxContentWidth),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: _InfoCard(
-                          icon: Icons.schedule,
-                          label: 'Prep',
-                          value: recipe.prepTimeMinutes != null
-                              ? '${recipe.prepTimeMinutes}m'
-                              : '-',
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _InfoCard(
-                          icon: Icons.timer,
-                          label: 'Cook',
-                          value: recipe.cookTimeMinutes != null
-                              ? '${recipe.cookTimeMinutes}m'
-                              : '-',
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _InfoCard(
-                          icon: Icons.restaurant,
-                          label: 'Servings',
-                          value: '${recipe.servings}',
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  if (totalTime > 0) ...[
-                    const SizedBox(height: 8),
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.access_time,
-                                size: 20, color: theme.colorScheme.primary),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Total: ${totalTime}m',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: theme.colorScheme.primary,
-                              ),
+                      // Quick info cards
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _InfoCard(
+                              icon: Icons.schedule,
+                              label: 'Prep',
+                              value: recipe.prepTimeMinutes != null
+                                  ? '${recipe.prepTimeMinutes}m'
+                                  : '-',
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-
-                  const SizedBox(height: 16),
-
-                  // Metadata chips
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      Chip(
-                        avatar: Icon(
-                          Icons.bar_chart,
-                          size: 18,
-                          color: _getDifficultyColor(recipe.difficulty),
-                        ),
-                        label: Text(
-                          recipe.difficulty.name.toUpperCase(),
-                          style: TextStyle(
-                            color: _getDifficultyColor(recipe.difficulty),
-                            fontWeight: FontWeight.bold,
                           ),
-                        ),
-                        backgroundColor: _getDifficultyColor(recipe.difficulty)
-                            .withValues(alpha: 0.1),
-                      ),
-                      if (recipe.category != null)
-                        Chip(
-                          avatar: const Icon(Icons.category, size: 18),
-                          label: Text(recipe.category!),
-                        ),
-                      if (recipe.cuisine != null)
-                        Chip(
-                          avatar: const Icon(Icons.public, size: 18),
-                          label: Text(recipe.cuisine!),
-                        ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Description
-                  if (recipe.description.isNotEmpty) ...[
-                    Text(
-                      recipe.description,
-                      style: theme.textTheme.bodyLarge?.copyWith(height: 1.6),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-
-                  // Tags
-                  if (recipe.tags != null && recipe.tags!.isNotEmpty) ...[
-                    const Divider(),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Icon(Icons.local_offer,
-                            size: 20, color: theme.colorScheme.secondary),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Tags',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _InfoCard(
+                              icon: Icons.timer,
+                              label: 'Cook',
+                              value: recipe.cookTimeMinutes != null
+                                  ? '${recipe.cookTimeMinutes}m'
+                                  : '-',
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: recipe.tags!
-                          .map((tag) => Chip(
-                                label: Text(tag),
-                                materialTapTargetSize:
-                                    MaterialTapTargetSize.shrinkWrap,
-                                labelStyle: const TextStyle(fontSize: 12),
-                              ))
-                          .toList(),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _InfoCard(
+                              icon: Icons.restaurant,
+                              label: 'Servings',
+                              value: '${recipe.servings}',
+                            ),
+                          ),
+                        ],
+                      ),
 
-                  // Ingredients
-                  const Divider(),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Icon(Icons.shopping_basket,
-                          size: 24, color: theme.colorScheme.primary),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Ingredients',
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        '${recipe.ingredients.length} items',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.secondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children:
-                            recipe.ingredients.asMap().entries.map((entry) {
-                          final i = entry.value;
-                          final isLast =
-                              entry.key == recipe.ingredients.length - 1;
-                          return Padding(
-                            padding: EdgeInsets.only(bottom: isLast ? 0 : 12),
+                      if (totalTime > 0) ...[
+                        const SizedBox(height: 8),
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
                             child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(
-                                  Icons.circle,
-                                  size: 8,
-                                  color: theme.colorScheme.primary,
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    '${_formatIngredientAmount(i)} ${i.name}'
-                                        .trim(),
-                                    style: theme.textTheme.bodyLarge,
+                                Icon(Icons.access_time,
+                                    size: 20, color: theme.colorScheme.primary),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Total: ${totalTime}m',
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.primary,
                                   ),
                                 ),
                               ],
                             ),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  // Instructions
-                  const Divider(),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Icon(Icons.format_list_numbered,
-                          size: 24, color: theme.colorScheme.primary),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Instructions',
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        '${recipe.steps.length} steps',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.secondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  ...recipe.steps.map((step) {
-                    final displayTitle = step.title.isNotEmpty
-                        ? step.title
-                        : 'Step ${step.stepNumber}';
-                    final hasDescription = step.description != null &&
-                        step.description!.trim().isNotEmpty;
-                    final timerMinutes = step.timerSeconds != null
-                        ? step.timerSeconds! ~/ 60
-                        : null;
-                    final stepIngredients = step.ingredientsForStep ?? [];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            CircleAvatar(
-                              radius: 20,
-                              backgroundColor:
-                                  theme.colorScheme.primaryContainer,
-                              child: Text(
-                                '${step.stepNumber}',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: theme.colorScheme.onPrimaryContainer,
-                                ),
-                              ),
+                      ],
+
+                      const SizedBox(height: 16),
+
+                      // Metadata chips
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          Chip(
+                            avatar: Icon(
+                              Icons.bar_chart,
+                              size: 16,
+                              color: _difficultyAccent(recipe.difficulty),
                             ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    displayTitle,
-                                    style: theme.textTheme.titleMedium
-                                        ?.copyWith(fontWeight: FontWeight.bold),
-                                  ),
-                                  if (hasDescription) ...[
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      step.description!,
-                                      style: theme.textTheme.bodyLarge
-                                          ?.copyWith(height: 1.5),
-                                    ),
-                                  ],
-                                  if (stepIngredients.isNotEmpty) ...[
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      'Ingredients for this step',
-                                      style:
-                                          theme.textTheme.bodyMedium?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Wrap(
-                                      spacing: 8,
-                                      runSpacing: 6,
-                                      children:
-                                          stepIngredients.map((ingredient) {
-                                        return Chip(
-                                          label: Text(
-                                            '${_formatIngredientAmount(ingredient)} ${ingredient.name}'
-                                                .trim(),
-                                          ),
-                                        );
-                                      }).toList(),
-                                    ),
-                                  ],
-                                  if (timerMinutes != null) ...[
-                                    const SizedBox(height: 12),
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.timer,
-                                          size: 16,
-                                          color: theme.colorScheme.secondary,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          '$timerMinutes minutes${step.timerLabel != null ? ' · ${step.timerLabel}' : ''}',
-                                          style: theme.textTheme.bodyMedium
-                                              ?.copyWith(
-                                            color: theme.colorScheme.secondary,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                  if (!hasDescription &&
-                                      stepIngredients.isEmpty &&
-                                      timerMinutes == null)
-                                    Text(
-                                      'No additional details for this step.',
-                                      style: theme.textTheme.bodyLarge
-                                          ?.copyWith(height: 1.5),
-                                    ),
-                                ],
+                            label: Text(_difficultyLabel(recipe.difficulty)),
+                          ),
+                          if (recipe.category != null)
+                            Chip(
+                              avatar: const Icon(Icons.category, size: 18),
+                              label: Text(recipe.category!),
+                            ),
+                          if (recipe.cuisine != null)
+                            Chip(
+                              avatar: const Icon(Icons.public, size: 18),
+                              label: Text(recipe.cuisine!),
+                            ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Description
+                      if (recipe.description.isNotEmpty) ...[
+                        Text(
+                          recipe.description,
+                          style:
+                              theme.textTheme.bodyLarge?.copyWith(height: 1.6),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+
+                      // Tags
+                      if (recipe.tags != null && recipe.tags!.isNotEmpty) ...[
+                        const Divider(),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Icon(Icons.local_offer,
+                                size: 20, color: theme.colorScheme.secondary),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Tags',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    );
-                  }),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: recipe.tags!
+                              .map((tag) => Chip(
+                                    label: Text(tag),
+                                    materialTapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                    labelStyle: const TextStyle(fontSize: 12),
+                                  ))
+                              .toList(),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
 
-                  // Notes
-                  if (recipe.notes != null && recipe.notes!.isNotEmpty) ...[
-                    const Divider(),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Icon(Icons.note,
-                            size: 20, color: theme.colorScheme.secondary),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Chef\'s Notes',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
+                      // Ingredients
+                      const Divider(),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Icon(Icons.shopping_basket,
+                              size: 24, color: theme.colorScheme.primary),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Ingredients',
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            '${recipe.ingredients.length} items',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.secondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children:
+                                recipe.ingredients.asMap().entries.map((entry) {
+                              final i = entry.value;
+                              final isLast =
+                                  entry.key == recipe.ingredients.length - 1;
+                              return Padding(
+                                padding:
+                                    EdgeInsets.only(bottom: isLast ? 0 : 12),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(
+                                      Icons.circle,
+                                      size: 8,
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        '${_formatIngredientAmount(i)} ${i.name}'
+                                            .trim(),
+                                        style: theme.textTheme.bodyLarge,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 32),
+
+                      // Instructions
+                      const Divider(),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Icon(Icons.format_list_numbered,
+                              size: 24, color: theme.colorScheme.primary),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Instructions',
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            '${recipe.steps.length} steps',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.secondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      ...recipe.steps.map((step) {
+                        final displayTitle = step.title.isNotEmpty
+                            ? step.title
+                            : 'Step ${step.stepNumber}';
+                        final hasDescription = step.description != null &&
+                            step.description!.trim().isNotEmpty;
+                        final timerMinutes = step.timerSeconds != null
+                            ? step.timerSeconds! ~/ 60
+                            : null;
+                        final stepIngredients = step.ingredientsForStep ?? [];
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                CircleAvatar(
+                                  radius: 20,
+                                  backgroundColor:
+                                      theme.colorScheme.primaryContainer,
+                                  child: Text(
+                                    '${step.stepNumber}',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color:
+                                          theme.colorScheme.onPrimaryContainer,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        displayTitle,
+                                        style: theme.textTheme.titleMedium
+                                            ?.copyWith(
+                                                fontWeight: FontWeight.bold),
+                                      ),
+                                      if (hasDescription) ...[
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          step.description!,
+                                          style: theme.textTheme.bodyLarge
+                                              ?.copyWith(height: 1.5),
+                                        ),
+                                      ],
+                                      if (stepIngredients.isNotEmpty) ...[
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          'Ingredients for this step',
+                                          style: theme.textTheme.bodyMedium
+                                              ?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Wrap(
+                                          spacing: 8,
+                                          runSpacing: 6,
+                                          children:
+                                              stepIngredients.map((ingredient) {
+                                            return Chip(
+                                              label: Text(
+                                                '${_formatIngredientAmount(ingredient)} ${ingredient.name}'
+                                                    .trim(),
+                                              ),
+                                            );
+                                          }).toList(),
+                                        ),
+                                      ],
+                                      if (timerMinutes != null) ...[
+                                        const SizedBox(height: 12),
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Icons.timer,
+                                              size: 16,
+                                              color:
+                                                  theme.colorScheme.secondary,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              '$timerMinutes minutes${step.timerLabel != null ? ' · ${step.timerLabel}' : ''}',
+                                              style: theme.textTheme.bodyMedium
+                                                  ?.copyWith(
+                                                color:
+                                                    theme.colorScheme.secondary,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                      if (!hasDescription &&
+                                          stepIngredients.isEmpty &&
+                                          timerMinutes == null)
+                                        Text(
+                                          'No additional details for this step.',
+                                          style: theme.textTheme.bodyLarge
+                                              ?.copyWith(height: 1.5),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }),
+
+                      // Notes
+                      if (recipe.notes != null && recipe.notes!.isNotEmpty) ...[
+                        const Divider(),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Icon(Icons.note,
+                                size: 20, color: theme.colorScheme.secondary),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Chef\'s Notes',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Card(
+                          color: theme.colorScheme.secondaryContainer
+                              .withValues(alpha: 0.3),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Text(
+                              recipe.notes!,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
                           ),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 12),
-                    Card(
-                      color: theme.colorScheme.secondaryContainer
-                          .withValues(alpha: 0.3),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Text(
-                          recipe.notes!,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
 
-                  const SizedBox(height: 80), // Space for FAB
-                ],
+                      const SizedBox(height: 80), // Space for FAB
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () =>
-            context.push('/recipe/${recipe.id}/cook', extra: recipe),
+        onPressed: () => context.push(
+            '/recipe/${recipe.firestoreId ?? widget.recipeId}/cook',
+            extra: recipe),
         icon: const Icon(Icons.restaurant_menu),
         label: const Text('Start Cooking'),
         heroTag: 'cook_button',
@@ -596,15 +620,22 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     );
   }
 
-  Color _getDifficultyColor(DifficultyLevel difficulty) {
+  /// A single muted accent per difficulty, drawn from the theme rather than
+  /// traffic-light colours.
+  Color _difficultyAccent(DifficultyLevel difficulty) {
+    final status = context.statusColors;
     switch (difficulty) {
       case DifficultyLevel.easy:
-        return Colors.green;
+        return status.success;
       case DifficultyLevel.medium:
-        return Colors.orange;
+        return status.warning;
       case DifficultyLevel.hard:
-        return Colors.red;
+        return Theme.of(context).colorScheme.error;
     }
+  }
+
+  String _difficultyLabel(DifficultyLevel difficulty) {
+    return difficulty.name[0].toUpperCase() + difficulty.name.substring(1);
   }
 
   String _formatAmountUnit(String amount, String? unit) {

@@ -7,14 +7,16 @@ import 'package:recipe_keeper/models/recipe.dart';
 // Filter state providers for Firestore
 final searchQueryProvider = StateProvider<String>((ref) => '');
 final selectedCategoryProvider = StateProvider<String?>((ref) => null);
-final selectedDifficultyProvider = StateProvider<String?>((ref) => null);
+final selectedDifficultyProvider =
+    StateProvider<DifficultyLevel?>((ref) => null);
 final showFavoritesOnlyProvider = StateProvider<bool>((ref) => false);
 
 /// Auth service provider
 final authServiceProvider = Provider<AuthService>((ref) => AuthService());
 
 /// Firestore service provider
-final firestoreServiceProvider = Provider<FirestoreService>((ref) => FirestoreService());
+final firestoreServiceProvider =
+    Provider<FirestoreService>((ref) => FirestoreService());
 
 /// Current user provider
 final currentUserProvider = StreamProvider<User?>((ref) {
@@ -26,7 +28,7 @@ final currentUserProvider = StreamProvider<User?>((ref) {
 final isAdminProvider = Provider<bool>((ref) {
   final userAsync = ref.watch(currentUserProvider);
   final authService = ref.watch(authServiceProvider);
-  
+
   return userAsync.when(
     data: (user) => user != null && authService.isAdmin,
     loading: () => false,
@@ -37,7 +39,7 @@ final isAdminProvider = Provider<bool>((ref) {
 /// Is signed in provider (reactive)
 final isSignedInProvider = Provider<bool>((ref) {
   final userAsync = ref.watch(currentUserProvider);
-  
+
   return userAsync.when(
     data: (user) => user != null,
     loading: () => false,
@@ -63,24 +65,25 @@ final firestoreFilteredRecipesProvider = Provider<List<Recipe>>((ref) {
     data: (recipes) {
       var filtered = recipes;
 
-      // Search filter
+      // Search filter — matches what the search field advertises: name,
+      // ingredients and tags, plus description, category and cuisine.
       if (searchQuery.isNotEmpty) {
         final query = searchQuery.toLowerCase();
-        filtered = filtered.where((recipe) {
-          return recipe.title.toLowerCase().contains(query) ||
-                 recipe.description.toLowerCase().contains(query) ||
-                 (recipe.tags?.any((tag) => tag.toLowerCase().contains(query)) ?? false);
-        }).toList();
+        filtered = filtered.where((recipe) => _matches(recipe, query)).toList();
       }
 
       // Category filter
       if (selectedCategory != null) {
-        filtered = filtered.where((r) => r.category == selectedCategory).toList();
+        final category = selectedCategory.toLowerCase();
+        filtered = filtered
+            .where((r) => r.category?.toLowerCase() == category)
+            .toList();
       }
 
       // Difficulty filter
       if (selectedDifficulty != null) {
-        filtered = filtered.where((r) => r.difficulty == selectedDifficulty).toList();
+        filtered =
+            filtered.where((r) => r.difficulty == selectedDifficulty).toList();
       }
 
       // Favorites filter
@@ -95,10 +98,22 @@ final firestoreFilteredRecipesProvider = Provider<List<Recipe>>((ref) {
   );
 });
 
+bool _matches(Recipe recipe, String query) {
+  bool contains(String? value) =>
+      value != null && value.toLowerCase().contains(query);
+
+  return contains(recipe.title) ||
+      contains(recipe.description) ||
+      contains(recipe.category) ||
+      contains(recipe.cuisine) ||
+      (recipe.tags?.any(contains) ?? false) ||
+      recipe.ingredients.any((i) => contains(i.name));
+}
+
 /// Categories provider (extracts unique categories from recipes)
 final categoriesProvider = Provider<List<String>>((ref) {
   final recipesAsync = ref.watch(recipesStreamProvider);
-  
+
   return recipesAsync.when(
     data: (recipes) {
       final categories = recipes

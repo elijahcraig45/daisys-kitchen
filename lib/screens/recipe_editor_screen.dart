@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:recipe_keeper/theme/app_theme.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -729,7 +730,8 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
                           onPressed: () => _editIngredient(index),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
+                          icon: Icon(Icons.delete_outline,
+                              color: Theme.of(context).colorScheme.error),
                           tooltip: 'Delete',
                           onPressed: () {
                             setState(() {
@@ -907,7 +909,8 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
                           onPressed: () => _editStep(index),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
+                          icon: Icon(Icons.delete_outline,
+                              color: Theme.of(context).colorScheme.error),
                           tooltip: 'Delete',
                           onPressed: () {
                             setState(() {
@@ -1221,7 +1224,7 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
     
     if (!isGeminiEnabled) {
       _showSimpleMessage(
-        '🏴‍☠️ AI features require a Gemini API key. Configure it in gemini_config.dart',
+        'AI features need a Gemini API key. Set gemini_api_key in Firebase Remote Config.',
       );
       return;
     }
@@ -1231,11 +1234,11 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.auto_awesome, color: Colors.amber),
-              SizedBox(width: 8),
-              Text('AI Recipe Extract'),
+              Icon(Icons.auto_awesome, color: context.statusColors.warning),
+              const SizedBox(width: 8),
+              const Text('AI Recipe Extract'),
             ],
           ),
           content: Column(
@@ -1243,7 +1246,7 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                '🏴‍☠️ Paste a recipe URL or recipe text below. '
+                'Paste a recipe URL or recipe text below. '
                 'The AI will extract and clean it up, adding both customary and metric units!',
                 style: TextStyle(fontSize: 13),
               ),
@@ -1298,7 +1301,7 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
       setState(() {
         _applyRecipe(recipe!);
       });
-      _showSimpleMessage('🏴‍☠️ Recipe extracted! Review and save when ready.');
+      _showSimpleMessage('Recipe extracted. Review the details and save when ready.');
     } catch (e) {
       _showSimpleMessage('AI extraction failed: $e');
     } finally {
@@ -1314,7 +1317,7 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
     
     if (!isGeminiEnabled) {
       _showSimpleMessage(
-        '🏴‍☠️ AI features require a Gemini API key. Configure it in gemini_config.dart',
+        'AI features need a Gemini API key. Set gemini_api_key in Firebase Remote Config.',
       );
       return;
     }
@@ -1350,7 +1353,7 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
       setState(() {
         _applyRecipe(verifiedRecipe);
       });
-      _showSimpleMessage('🏴‍☠️ Recipe verified and enhanced! Check the improvements.');
+      _showSimpleMessage('Recipe reviewed and enhanced. Check the changes below.');
     } catch (e) {
       _showSimpleMessage('AI verification failed: $e');
     } finally {
@@ -1659,7 +1662,6 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
 
     if (widget.recipe != null && widget.recipe!.firestoreId != null) {
       // Update existing recipe
-      recipe.id = widget.recipe!.id;
       recipe.firestoreId = widget.recipe!.firestoreId;
       recipe.createdAt = widget.recipe!.createdAt;
       await firestoreService.updateRecipe(widget.recipe!.firestoreId!, recipe);
@@ -1669,9 +1671,10 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
       if (id == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Error: You must be signed in to create recipes'),
-              backgroundColor: Colors.red,
+            SnackBar(
+              content:
+                  const Text('You must be signed in to create recipes'),
+              backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
         }

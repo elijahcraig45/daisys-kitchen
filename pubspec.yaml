@@ -1,5 +1,5 @@
 name: recipe_keeper
-description: "A pirate's treasure chest for storing and managing culinary recipes."
+description: "Daisy's Kitchen — collect, search and cook from your own recipe book."
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -12,18 +12,10 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.8
-  
+
   # State Management
   flutter_riverpod: ^2.5.1
-  
-  # Local Database
-  isar: ^3.1.0+1
-  isar_flutter_libs: ^3.1.0+1
-  path_provider: ^2.1.4
-  
-  # Web storage
-  shared_preferences: ^2.3.3
-  
+
   # JSON Serialization
   json_annotation: ^4.9.0
   
@@ -67,7 +59,6 @@ dev_dependencies:
   # Code Generation
   build_runner: ^2.4.13
   json_serializable: ^6.8.0
-  isar_generator: ^3.1.0+1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -79,6 +70,14 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  fonts:
+    # Source Serif 4, instanced to SemiBold and subset to Latin (SIL OFL 1.1;
+    # see assets/fonts/OFL.txt). Used for headings only — see AppTheme.
+    - family: DaisySerif
+      fonts:
+        - asset: assets/fonts/DaisySerif-SemiBold.ttf
+          weight: 600
 
   # To add assets to your application, add an assets section, like this:
   # assets:

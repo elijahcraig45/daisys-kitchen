@@ -1,139 +1,115 @@
 import 'package:flutter/material.dart';
+import 'package:recipe_keeper/theme/app_theme.dart';
 
-/// Helper for showing consistent, user-friendly snackbars
-/// All snackbars follow the pirate theme and app style
+/// Helper for showing consistent, user-friendly snackbars.
+///
+/// Every colour comes from the theme so both light and dark render correctly.
 class SnackBarHelper {
-  /// Show a success message
   static void showSuccess(BuildContext context, String message) {
-    if (!context.mounted) return;
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.green[700],
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 3),
-        action: SnackBarAction(
-          label: 'Dismiss',
-          textColor: Colors.white,
-          onPressed: () {},
-        ),
-      ),
+    _show(
+      context,
+      message,
+      icon: Icons.check_circle_outline,
+      background: context.statusColors.success,
+      duration: const Duration(seconds: 3),
     );
   }
 
-  /// Show an error message
   static void showError(BuildContext context, String message) {
-    if (!context.mounted) return;
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.red[700],
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 5),
-        action: SnackBarAction(
-          label: 'Dismiss',
-          textColor: Colors.white,
-          onPressed: () {},
-        ),
-      ),
+    _show(
+      context,
+      message,
+      icon: Icons.error_outline,
+      background: context.colors.error,
+      foreground: context.colors.onError,
+      duration: const Duration(seconds: 5),
     );
   }
 
-  /// Show an info message
   static void showInfo(BuildContext context, String message) {
-    if (!context.mounted) return;
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.info_outline, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.blue[700],
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 4),
-        action: SnackBarAction(
-          label: 'Dismiss',
-          textColor: Colors.white,
-          onPressed: () {},
-        ),
-      ),
+    _show(
+      context,
+      message,
+      icon: Icons.info_outline,
+      background: context.statusColors.info,
+      duration: const Duration(seconds: 4),
     );
   }
 
-  /// Show a warning message
   static void showWarning(BuildContext context, String message) {
-    if (!context.mounted) return;
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.warning_amber, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.orange[700],
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 4),
-        action: SnackBarAction(
-          label: 'Dismiss',
-          textColor: Colors.white,
-          onPressed: () {},
-        ),
-      ),
+    _show(
+      context,
+      message,
+      icon: Icons.warning_amber_outlined,
+      background: context.statusColors.warning,
+      duration: const Duration(seconds: 4),
     );
   }
 
-  /// Show a loading snackbar (returns ScaffoldFeatureController for dismissal)
+  /// Show a loading snackbar; the caller closes it when the work finishes.
   static ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showLoading(
     BuildContext context,
     String message,
   ) {
+    final colors = context.colors;
     return ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
-            const SizedBox(
-              width: 20,
-              height: 20,
+            SizedBox(
+              width: 18,
+              height: 18,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                valueColor:
+                    AlwaysStoppedAnimation<Color>(colors.onInverseSurface),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 14),
             Expanded(child: Text(message)),
           ],
         ),
-        backgroundColor: Colors.blueGrey[700],
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(days: 1), // Keep showing until dismissed
+        duration: const Duration(days: 1),
       ),
     );
   }
 
-  /// Dismiss any showing snackbar
   static void dismiss(BuildContext context) {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).clearSnackBars();
+  }
+
+  static void _show(
+    BuildContext context,
+    String message, {
+    required IconData icon,
+    required Color background,
+    required Duration duration,
+    Color? foreground,
+  }) {
+    if (!context.mounted) return;
+
+    final onBackground = foreground ?? context.statusColors.onStatus;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(icon, color: onBackground, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(message, style: TextStyle(color: onBackground)),
+            ),
+          ],
+        ),
+        backgroundColor: background,
+        duration: duration,
+        action: SnackBarAction(
+          label: 'Dismiss',
+          textColor: onBackground,
+          onPressed: () {},
+        ),
+      ),
+    );
   }
 }

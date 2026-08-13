@@ -1,11 +1,9 @@
-import 'package:isar/isar.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'ingredient.dart';
 
 part 'recipe_step.g.dart';
 
 @JsonSerializable()
-@embedded
 class RecipeStep {
   late int stepNumber;
   String title;

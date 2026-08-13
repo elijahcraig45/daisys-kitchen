@@ -1,4 +1,3 @@
-import 'package:isar/isar.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'ingredient.dart';
 import 'recipe_step.dart';
@@ -6,16 +5,11 @@ import 'recipe_step.dart';
 part 'recipe.g.dart';
 
 @JsonSerializable()
-@collection
 class Recipe {
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  Id id = Isar.autoIncrement;
-
-  // Firestore document ID (when using Firestore)
+  /// Firestore document ID; null until the recipe has been saved.
   @JsonKey(includeFromJson: false, includeToJson: false)
   String? firestoreId;
 
-  @Index(type: IndexType.value, caseSensitive: false)
   late String title;
 
   late String description;
@@ -23,7 +17,6 @@ class Recipe {
   @JsonKey(includeFromJson: true, includeToJson: true)
   String? imageUrl;
 
-  @Index()
   late int servings;
 
   @JsonKey(includeFromJson: true, includeToJson: true)
@@ -32,7 +25,6 @@ class Recipe {
   @JsonKey(includeFromJson: true, includeToJson: true)
   int? cookTimeMinutes;
 
-  @Index(type: IndexType.value)
   List<String>? tags;
 
   @JsonKey(includeFromJson: true, includeToJson: true)
@@ -41,7 +33,6 @@ class Recipe {
   @JsonKey(includeFromJson: true, includeToJson: true)
   String? cuisine;
 
-  @enumerated
   DifficultyLevel difficulty = DifficultyLevel.medium;
 
   List<Ingredient> ingredients = [];
@@ -55,7 +46,6 @@ class Recipe {
   String? source;
 
   @JsonKey(includeFromJson: false, includeToJson: false)
-  @Index()
   late DateTime createdAt;
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -120,7 +110,7 @@ class Recipe {
       source: source ?? this.source,
       isFavorite: isFavorite ?? this.isFavorite,
     );
-    updated.id = id;
+    updated.firestoreId = firestoreId;
     updated.createdAt = createdAt;
     updated.updatedAt = DateTime.now();
     updated.ingredients.addAll(ingredients);
