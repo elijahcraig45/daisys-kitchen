@@ -80,16 +80,22 @@ class HouseholdService {
   /// Reads each member's profile, which the rules allow only because they are in your
   /// household. Names, never emails.
   Future<Map<String, String>> memberNames(Household household) async {
-    final names = <String, String>{};
-    for (final uid in household.memberUids) {
-      try {
-        final snap = await _firestore.collection('users').doc(uid).get();
-        names[uid] = snap.data()?['displayName'] as String? ?? 'Someone';
-      } catch (e) {
-        names[uid] = 'Someone';
-      }
+    if (household.memberUids.isEmpty) return {};
+    try {
+      // One query rather than a read per member. A loop of get() calls is the same code
+      // length and turns a members list into a dozen billed reads every time it renders.
+      final snap = await _firestore
+          .collection('users')
+          .where(FieldPath.documentId, whereIn: household.memberUids)
+          .get();
+      return {
+        for (final doc in snap.docs)
+          doc.id: doc.data()['displayName'] as String? ?? 'Someone',
+      };
+    } catch (e) {
+      LoggerService.warning('Could not load member names', 'Household');
+      return {for (final uid in household.memberUids) uid: 'Someone'};
     }
-    return names;
   }
 
   Future<String?> create(String name) => _call('createHousehold', {'name': name})

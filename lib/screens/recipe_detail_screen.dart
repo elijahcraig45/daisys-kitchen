@@ -6,6 +6,7 @@ import 'package:recipe_keeper/models/ingredient.dart';
 import 'package:recipe_keeper/models/recipe.dart';
 import 'package:recipe_keeper/providers/firebase_providers.dart';
 import 'package:recipe_keeper/theme/app_theme.dart';
+import 'package:recipe_keeper/utils/snackbar_helper.dart';
 
 class RecipeDetailScreen extends ConsumerStatefulWidget {
   final String recipeId;
@@ -26,6 +27,117 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     super.initState();
     _currentRecipe = widget.recipe;
     if (_currentRecipe == null) _loadRecipe();
+  }
+
+  /// Whether the signed-in user wrote this. Recipes predating `createdBy` have no author,
+  /// and are treated as the viewer's own so they remain editable rather than becoming
+  /// read-only for everybody.
+  bool _isMine(Recipe recipe) {
+    final uid = ref.read(currentUserProvider).valueOrNull?.uid;
+    return recipe.createdBy == null || recipe.createdBy == uid;
+  }
+
+  /// Save is a bookmark: the author's later corrections are what you see. It becomes a
+  /// copy of your own the first time you edit it.
+  Widget _buildSaveButton(Recipe recipe) {
+    final saved = ref.watch(savedRecipeIdsProvider).valueOrNull ?? const <String>{};
+    final isSaved = recipe.firestoreId != null && saved.contains(recipe.firestoreId);
+    return IconButton(
+      icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_border),
+      tooltip: isSaved ? 'Remove from my recipes' : 'Save to my recipes',
+      onPressed: () async {
+        final ok = await ref
+            .read(firestoreServiceProvider)
+            .setSaved(recipe, !isSaved);
+        if (!mounted) return;
+        if (ok) {
+          SnackBarHelper.showSuccess(
+            context,
+            isSaved ? 'Removed from your recipes.' : 'Saved to your recipes.',
+          );
+        } else {
+          SnackBarHelper.showError(context, 'Could not change that. Try again.');
+        }
+      },
+    );
+  }
+
+  Future<String?> _forkForEditing(Recipe recipe) async {
+    final proceed = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Make your own copy'),
+        content: const Text(
+          'This recipe belongs to someone else. Editing it will create your own copy, '
+          'kept private until you choose otherwise. The original stays as it is.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Make a copy'),
+          ),
+        ],
+      ),
+    );
+    if (proceed != true) return null;
+
+    final id = await ref.read(firestoreServiceProvider).forkForEditing(recipe);
+    if (!mounted) return null;
+    if (id == null) {
+      SnackBarHelper.showError(context, 'Could not copy that recipe.');
+    }
+    return id;
+  }
+
+  Future<void> _reportRecipe(Recipe recipe) async {
+    final controller = TextEditingController();
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Report this recipe'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('An admin will take a look. The author is not told who reported it.'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              maxLength: 300,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'What is wrong with it?',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(c, controller.text.trim()),
+            child: const Text('Report'),
+          ),
+        ],
+      ),
+    );
+    if (reason == null || reason.isEmpty || recipe.firestoreId == null) return;
+
+    final ok = await ref
+        .read(firestoreServiceProvider)
+        .reportRecipe(recipe.firestoreId!, reason);
+    if (!mounted) return;
+    if (ok) {
+      SnackBarHelper.showSuccess(context, 'Reported. Thank you.');
+    } else {
+      SnackBarHelper.showError(context, 'Could not send that report.');
+    }
   }
 
   Future<void> _loadRecipe() async {
@@ -147,9 +259,21 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                   await _loadRecipe();
                 },
               ),
+              if (!_isMine(recipe)) _buildSaveButton(recipe),
               PopupMenuButton(
                 icon: const Icon(Icons.more_vert),
                 itemBuilder: (c) => [
+                  if (!_isMine(recipe))
+                    const PopupMenuItem(
+                      value: 'report',
+                      child: Row(
+                        children: [
+                          Icon(Icons.flag_outlined),
+                          SizedBox(width: 8),
+                          Text('Report'),
+                        ],
+                      ),
+                    ),
                   const PopupMenuItem(
                     value: 'edit',
                     child: Row(
@@ -175,7 +299,27 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                   ),
                 ],
                 onSelected: (v) async {
-                  if (v == 'edit') {
+                  if (v == 'report') {
+                    await _reportRecipe(recipe);
+                  } else if (v == 'edit') {
+                    // Editing someone else's recipe makes a copy rather than changing
+                    // theirs. The rules would refuse the write anyway; doing it silently
+                    // would be worse than explaining it.
+                    if (!_isMine(recipe)) {
+                      // Router captured before the awaits, the same way the delete path
+                      // below does it — a mounted check on the State does not tell the
+                      // analyzer anything about this builder's context.
+                      final router = GoRouter.of(context);
+                      final forkedId = await _forkForEditing(recipe);
+                      if (forkedId == null || !mounted) return;
+                      final forked = await ref
+                          .read(firestoreServiceProvider)
+                          .getRecipeById(forkedId);
+                      if (!mounted) return;
+                      await router.push<bool>('/recipe/$forkedId/edit', extra: forked);
+                      if (mounted) await _loadRecipe();
+                      return;
+                    }
                     final result = await context.push<bool>(
                       '/recipe/${widget.recipeId}/edit',
                       extra: _currentRecipe,

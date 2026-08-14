@@ -31,6 +31,9 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
   final _prepTimeController = TextEditingController();
   final _cookTimeController = TextEditingController();
   final _categoryController = TextEditingController();
+  /// Who will be able to see this. Defaults to private for a new recipe: publishing
+  /// should be something you choose, not something that happens because you saved.
+  String _visibility = 'private';
   final _cuisineController = TextEditingController();
   final _notesController = TextEditingController();
   final _tagInputController = TextEditingController();
@@ -86,6 +89,7 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
     _prepTimeController.text = recipe.prepTimeMinutes?.toString() ?? '';
     _cookTimeController.text = recipe.cookTimeMinutes?.toString() ?? '';
     _categoryController.text = recipe.category ?? '';
+    _visibility = recipe.visibility;
     _cuisineController.text = recipe.cuisine ?? '';
     _notesController.text = recipe.notes ?? '';
     _difficulty = recipe.difficulty;
@@ -438,6 +442,10 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
                       keyboardType: TextInputType.number,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     ),
+                  ),
+                  SizedBox(
+                    width: fieldWidth,
+                    child: _buildVisibilityField(),
                   ),
                 ],
               );
@@ -1373,6 +1381,7 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
     _prepTimeController.text = (recipe.prepTimeMinutes ?? 0).toString();
     _cookTimeController.text = (recipe.cookTimeMinutes ?? 0).toString();
     _categoryController.text = recipe.category ?? '';
+    _visibility = recipe.visibility;
     _notesController.text = recipe.notes ?? '';
     
     _ingredients.clear();
@@ -1617,6 +1626,51 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
     );
   }
 
+  /// Private, household, or published to the community.
+  ///
+  /// Household is offered only when you are in one, and publishing needs a Google
+  /// account — the rules refuse an anonymous account either way, so the control says so
+  /// rather than letting the save fail.
+  Widget _buildVisibilityField() {
+    final household = ref.watch(myHouseholdProvider).valueOrNull;
+    final user = ref.watch(currentUserProvider).valueOrNull;
+    final canPublish = user != null && !user.isAnonymous;
+
+    return DropdownButtonFormField<String>(
+      key: ValueKey('visibility-$_visibility'),
+      // initialValue, not the deprecated `value`. Safe because the ValueKey above
+      // changes with the selection, so the field is rebuilt rather than left stale.
+      initialValue: _visibility,
+      decoration: InputDecoration(
+        labelText: 'Who can see this',
+        helperText: switch (_visibility) {
+          'public' => 'Anyone can find it in the community library.',
+          'household' => 'Shared with ${household?.name ?? 'your household'}.',
+          _ => 'Only you.',
+        },
+      ),
+      items: [
+        const DropdownMenuItem(value: 'private', child: Text('Only me')),
+        DropdownMenuItem(
+          value: 'household',
+          enabled: household != null,
+          child: Text(household == null ? 'Household (join one first)' : 'My household'),
+        ),
+        DropdownMenuItem(
+          value: 'public',
+          enabled: canPublish,
+          child: Text(canPublish ? 'Community' : 'Community (needs a Google account)'),
+        ),
+      ],
+      onChanged: (value) {
+        if (value == null) return;
+        if (value == 'household' && household == null) return;
+        if (value == 'public' && !canPublish) return;
+        setState(() => _visibility = value);
+      },
+    );
+  }
+
   Future<void> _saveRecipe() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -1656,6 +1710,15 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
       notes: _notesController.text.isNotEmpty ? _notesController.text : null,
       isFavorite: widget.recipe?.isFavorite ?? false,
     );
+
+    recipe.visibility = _visibility;
+    // Only meaningful for a household recipe, and the rules check it matches your own.
+    recipe.householdId = _visibility == 'household'
+        ? ref.read(myHouseholdProvider).valueOrNull?.id
+        : null;
+    recipe.forkedFrom = widget.recipe?.forkedFrom;
+    recipe.createdBy = widget.recipe?.createdBy;
+    recipe.createdByName = widget.recipe?.createdByName;
 
     recipe.ingredients.addAll(_ingredients);
     recipe.steps.addAll(_steps);

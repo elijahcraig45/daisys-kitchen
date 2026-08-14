@@ -363,7 +363,45 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       padding: const EdgeInsets.all(16),
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+          child: Text(
+            'Library',
+            style: Theme.of(context).textTheme.labelMedium,
+          ),
+        ),
+        _buildScopeTile(
+          RecipeScope.mine,
+          Icons.bookmark_outline,
+          'My recipes',
+          'Written by me, plus anything I have saved',
+        ),
+        _buildScopeTile(
+          RecipeScope.household,
+          Icons.home_outlined,
+          'Household',
+          ref.watch(myHouseholdProvider).valueOrNull?.name ??
+              'Shared with the people you cook with',
+        ),
+        _buildScopeTile(
+          RecipeScope.community,
+          Icons.public,
+          'Community',
+          'Published by everyone',
+        ),
+        ListTile(
+          leading: const Icon(Icons.group_outlined),
+          title: Text(ref.watch(myHouseholdProvider).valueOrNull == null
+              ? 'Set up a household'
+              : 'Manage household'),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          onTap: () {
+            Navigator.of(context).maybePop();
+            context.push('/household');
+          },
+        ),
+        const Divider(),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
           child: Text(
             'Categories',
             style: Theme.of(context).textTheme.labelMedium,
@@ -423,6 +461,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       onTap: () {
         final notifier = ref.read(selectedDifficultyProvider.notifier);
         notifier.state = notifier.state == level ? null : level;
+      },
+    );
+  }
+
+  /// One library scope. Household is offered even without a household, and explains
+  /// itself when tapped rather than being greyed out with no reason given.
+  Widget _buildScopeTile(
+    RecipeScope scope,
+    IconData icon,
+    String title,
+    String subtitle,
+  ) {
+    final selected = ref.watch(recipeScopeProvider) == scope;
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(title),
+      subtitle: Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis),
+      selected: selected,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      onTap: () {
+        if (scope == RecipeScope.household &&
+            ref.read(myHouseholdProvider).valueOrNull == null) {
+          SnackBarHelper.showInfo(
+            context,
+            'Join or create a household to share recipes with the people you cook with.',
+          );
+          return;
+        }
+        ref.read(recipeScopeProvider.notifier).state = scope;
+        Navigator.of(context).maybePop();
       },
     );
   }

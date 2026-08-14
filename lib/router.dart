@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:recipe_keeper/models/recipe.dart';
 import 'package:recipe_keeper/screens/home_screen.dart';
+import 'package:recipe_keeper/screens/household_screen.dart';
 import 'package:recipe_keeper/screens/recipe_detail_screen.dart';
 import 'package:recipe_keeper/screens/recipe_editor_screen.dart';
 import 'package:recipe_keeper/screens/cooking_mode_screen.dart';
@@ -13,6 +14,11 @@ final router = GoRouter(
       path: '/',
       name: 'home',
       builder: (context, state) => const HomeScreen(),
+    ),
+    GoRoute(
+      path: '/household',
+      name: 'household',
+      builder: (context, state) => const HouseholdScreen(),
     ),
     GoRoute(
       path: '/recipe/new',
