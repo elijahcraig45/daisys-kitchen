@@ -1220,11 +1220,12 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
 
   /// AI Extract dialog - paste recipe text or URL
   Future<void> _showAIExtractDialog() async {
-    final isGeminiEnabled = ref.read(isGeminiEnabledProvider);
+    final isGeminiEnabled =
+        ref.read(isGeminiEnabledProvider).valueOrNull ?? false;
     
     if (!isGeminiEnabled) {
       _showSimpleMessage(
-        'AI features need a Gemini API key. Set gemini_api_key in Firebase Remote Config.',
+        'AI features are limited to specific accounts on this instance.',
       );
       return;
     }
@@ -1313,11 +1314,12 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
 
   /// Verify current recipe with AI
   Future<void> _verifyRecipeWithAI() async {
-    final isGeminiEnabled = ref.read(isGeminiEnabledProvider);
+    final isGeminiEnabled =
+        ref.read(isGeminiEnabledProvider).valueOrNull ?? false;
     
     if (!isGeminiEnabled) {
       _showSimpleMessage(
-        'AI features need a Gemini API key. Set gemini_api_key in Firebase Remote Config.',
+        'AI features are limited to specific accounts on this instance.',
       );
       return;
     }

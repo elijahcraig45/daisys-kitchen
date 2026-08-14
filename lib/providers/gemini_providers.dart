@@ -7,10 +7,14 @@ final geminiServiceProvider = Provider<GeminiService>((ref) {
   return GeminiService();
 });
 
-/// Provider to check if Gemini is enabled and configured
-final isGeminiEnabledProvider = Provider<bool>((ref) {
+/// Whether this user may use AI features.
+///
+/// Async because permission is a property of the signed-in account read from
+/// Firestore, not of a key sitting in the client. Only a hint for the UI — the
+/// binding decision is made server-side by the geminiProxy function.
+final isGeminiEnabledProvider = FutureProvider<bool>((ref) async {
   final geminiService = ref.watch(geminiServiceProvider);
-  return geminiService.isEnabled;
+  return geminiService.isAllowed;
 });
 
 /// Provider for verifying and cleaning a recipe

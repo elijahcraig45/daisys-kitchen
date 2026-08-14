@@ -41,8 +41,10 @@ class RecipeAutofillService {
       throw RecipeAutofillException('Please enter a valid http or https URL.');
     }
 
-    // Try Gemini first if enabled (smarter extraction)
-    if (_geminiService.isEnabled) {
+    // Try Gemini first (smarter extraction). No permission check here: the proxy
+    // refuses callers who aren't allowed, extractRecipeFromUrl returns null, and the
+    // HTML path below is the fallback for exactly that case.
+    if (await _geminiService.isAllowed) {
       LoggerService.info('Using Gemini AI to extract recipe from URL', 'RecipeAutofill');
       try {
         final recipe = await _geminiService.extractRecipeFromUrl(url);

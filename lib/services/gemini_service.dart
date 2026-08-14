@@ -1,5 +1,8 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'logger_service.dart';
 import 'remote_config_service.dart';
 import '../models/recipe.dart';
@@ -9,33 +12,35 @@ import '../models/recipe_step.dart';
 /// Service for interacting with Google's Gemini API
 /// Provides AI-powered recipe verification, cleanup, and extraction
 class GeminiService {
-  static const String _baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
-  
-  /// Check if Gemini is enabled and configured
-  bool get isEnabled {
-    final remoteConfig = RemoteConfigService.instance;
-    if (!remoteConfig.isInitialized) return false;
-    
-    final apiKey = remoteConfig.geminiApiKey;
-    final enabled = remoteConfig.geminiEnabled;
-    
-    return enabled && apiKey.isNotEmpty && apiKey != 'YOUR_GEMINI_API_KEY_HERE';
+  /// Whether this user may use AI features.
+  ///
+  /// Only a hint for the UI, so a feature can be hidden rather than offered and
+  /// refused — the decision that matters is made by the `geminiProxy` function
+  /// against the caller's verified uid. There is deliberately no API key here to
+  /// check: it lives in Secret Manager, because Remote Config is delivered to every
+  /// client and a key kept there is public.
+  Future<bool> get isAllowed async {
+    if (!RemoteConfigService.instance.geminiEnabled) return false;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return false;
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      return snap.data()?['aiEnabled'] == true;
+    } catch (e) {
+      LoggerService.warning('Could not read AI permission', 'GeminiService');
+      return false;
+    }
   }
-  
-  /// Get the API key from Remote Config
-  String get _apiKey => RemoteConfigService.instance.geminiApiKey;
-  
+
   /// Get the model name from Remote Config
   String get _model => RemoteConfigService.instance.geminiModel;
   
   /// Verify and clean up a recipe
   /// Fixes grammatical errors and adds both customary and metric units
   Future<Recipe?> verifyAndCleanRecipe(Recipe recipe) async {
-    if (!isEnabled) {
-      LoggerService.warning('Gemini is not enabled or configured', 'GeminiService');
-      return recipe;
-    }
-    
     try {
       LoggerService.info('Sending recipe "${recipe.title}" to Gemini for verification', 'GeminiService');
       
@@ -57,11 +62,6 @@ class GeminiService {
   /// Extract recipe from a URL
   /// Works with both print-friendly and regular website URLs
   Future<Recipe?> extractRecipeFromUrl(String url) async {
-    if (!isEnabled) {
-      LoggerService.warning('Gemini is not enabled or configured', 'GeminiService');
-      return null;
-    }
-    
     try {
       LoggerService.info('Extracting recipe from URL: $url', 'GeminiService');
       
@@ -119,11 +119,6 @@ Important:
   /// Extract recipe from pasted text
   /// Useful for recipes copied from websites or documents
   Future<Recipe?> extractRecipeFromText(String text) async {
-    if (!isEnabled) {
-      LoggerService.warning('Gemini is not enabled or configured', 'GeminiService');
-      return null;
-    }
-    
     try {
       LoggerService.info('Extracting recipe from pasted text', 'GeminiService');
       
@@ -206,7 +201,7 @@ Important:
     
     return '''
 You are a recipe verification and enhancement expert. Review this recipe and:
-1. Fix any grammatical errors in ti_model:generateContent?key=$_apiKey
+1. Fix any grammatical errors in the recipe text
 2. Add both customary and metric units to ALL measurements (e.g., "1 cup (240ml)", "350°F (175°C)")
 3. Ensure consistency in formatting
 4. Keep the original recipe's style and tone
@@ -218,41 +213,32 @@ Return the improved recipe in the same JSON format. Include BOTH customary and m
 ''';
   }
   
-  /// Call Gemini API with retry logic
+  /// Send a prompt to Gemini through the `geminiProxy` function.
+  ///
+  /// Never calls generativelanguage.googleapis.com directly. It used to, with the key
+  /// taken from Remote Config and placed in the query string — which meant every
+  /// visitor to the site was handed a working key. The key now stays server-side and
+  /// this sends only the prompt.
   Future<String?> _callGemini(String prompt) async {
-    final url = '$_baseUrl/models/$_model:generateContent?key=$_apiKey';
-    
     try {
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'contents': [
-            {
-              'parts': [
-                {'text': prompt}
-              ]
-            }
-          ],
-          'generationConfig': {
-            'temperature': 0.4,
-            'topK': 32,
-            'topP': 1,
-            'maxOutputTokens': 4096,
-          }
-        }),
-      );
-      
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final text = data['candidates']?[0]?['content']?['parts']?[0]?['text'];
-        return text;
+      final callable = FirebaseFunctions.instanceFor(region: 'us-central1')
+          .httpsCallable('geminiProxy');
+      final result = await callable.call<Map<String, dynamic>>({
+        'prompt': prompt,
+        'model': _model,
+      });
+      return result.data['text'] as String?;
+    } on FirebaseFunctionsException catch (e) {
+      // permission-denied is the expected answer for an account that isn't on the
+      // allowlist, so it is not an error worth shouting about.
+      if (e.code == 'permission-denied' || e.code == 'unauthenticated') {
+        LoggerService.info('AI features are not enabled for this account', 'GeminiService');
       } else {
-        LoggerService.error('Gemini API error: ${response.statusCode} - ${response.body}', tag: 'GeminiService');
-        return null;
+        LoggerService.error('Gemini proxy error: ${e.code}', error: e, tag: 'GeminiService');
       }
+      return null;
     } catch (e) {
-      LoggerService.error('Failed to call Gemini API', error: e, tag: 'GeminiService');
+      LoggerService.error('Failed to call Gemini', error: e, tag: 'GeminiService');
       return null;
     }
   }

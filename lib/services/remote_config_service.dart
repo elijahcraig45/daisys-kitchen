@@ -31,8 +31,10 @@ class RemoteConfigService {
       );
 
       // Set default values (used when no remote value exists)
+      // No gemini_api_key here, deliberately. Remote Config is delivered to every
+      // client, so a key kept here is public — it lives in Secret Manager and is
+      // only ever read by the geminiProxy function.
       await _remoteConfig!.setDefaults({
-        'gemini_api_key': '',
         'gemini_model': 'gemini-1.5-flash',
         'gemini_enabled': true,
       });
@@ -46,15 +48,6 @@ class RemoteConfigService {
       LoggerService.error('Failed to initialize Remote Config', error: e, tag: 'RemoteConfig');
       _initialized = false;
     }
-  }
-
-  /// Get Gemini API key from remote config
-  String get geminiApiKey {
-    if (!_initialized || _remoteConfig == null) {
-      LoggerService.warning('Remote Config not initialized', 'RemoteConfig');
-      return '';
-    }
-    return _remoteConfig!.getString('gemini_api_key');
   }
 
   /// Get Gemini model name from remote config

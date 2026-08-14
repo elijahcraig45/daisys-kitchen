@@ -61,3 +61,11 @@ functions/.runtimeconfig.json
 *.freezed.dart
 *.config.dart
 lib/services/gemini_config.dart
+
+# Rules tests install their own deps
+test/rules/node_modules/
+
+# A machine-global `flutter config --build-dir` here points at server/build, and the
+# root-anchored /build/ rule above does not cover it — so build output was landing in
+# `git status` as untracked files ready to be committed by accident.
+server/build/

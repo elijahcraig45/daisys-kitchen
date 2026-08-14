@@ -20,10 +20,32 @@ service cloud.firestore {
     match /recipes/{recipeId} {
       // Anyone can read recipes (public viewing)
       allow read: if true;
-      
+
+      // Nothing bounded document size before this, so a single write could be a
+      // megabyte of text, as often as someone cared to send it. Limits are generous
+      // enough that no real recipe hits them.
+      function withinLimits() {
+        let d = request.resource.data;
+        return d.title is string && d.title.size() > 0 && d.title.size() <= 200 &&
+               (!('description' in d) || d.description.size() <= 2000) &&
+               (!('notes' in d) || d.notes.size() <= 5000) &&
+               (!('ingredients' in d) || d.ingredients.size() <= 100) &&
+               (!('steps' in d) || d.steps.size() <= 100) &&
+               (!('tags' in d) || d.tags.size() <= 30);
+      }
+
+      // The app renders this straight into an image element, so a javascript: or
+      // data: value has no business being stored.
+      function imageUrlIsSafe() {
+        let d = request.resource.data;
+        return !('imageUrl' in d) || d.imageUrl == null || d.imageUrl == '' ||
+               d.imageUrl.matches('https://.*');
+      }
+
       // Signed-in users can create recipes (must set createdBy to their UID)
       allow create: if request.auth != null &&
-                       request.resource.data.createdBy == request.auth.uid;
+                       request.resource.data.createdBy == request.auth.uid &&
+                       withinLimits() && imageUrlIsSafe();
 
       // Editing content is limited to the creator or an admin. Recipes predating
       // the createdBy field stay editable by any signed-in user so existing data
@@ -42,7 +64,8 @@ service cloud.firestore {
       }
 
       allow update: if request.auth != null &&
-                       (togglesFavoriteOnly() || ownsRecipe());
+                       (togglesFavoriteOnly() ||
+                        (ownsRecipe() && withinLimits() && imageUrlIsSafe()));
 
       // Users can delete their own recipes, admins can delete any
       allow delete: if request.auth != null && 

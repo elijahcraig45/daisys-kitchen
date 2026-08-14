@@ -619,7 +619,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   /// Show options for adding a recipe
   void _showAddRecipeOptions(BuildContext context) {
-    final isGeminiEnabled = ref.read(isGeminiEnabledProvider);
+    final isGeminiEnabled =
+        ref.read(isGeminiEnabledProvider).valueOrNull ?? false;
 
     showModalBottomSheet(
       context: context,

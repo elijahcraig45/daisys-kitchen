@@ -1,0 +1,13 @@
+{
+  "name": "daisys-kitchen-rules-tests",
+  "private": true,
+  "type": "module",
+  "description": "Security rules tests. A rules mistake is a data leak rather than a bug, so these run against the emulator with real reads and writes.",
+  "scripts": {
+    "test": "firebase emulators:exec --only firestore --project daisys-rules-test 'node --test'"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^3.0.4",
+    "firebase": "^10.14.1"
+  }
+}
