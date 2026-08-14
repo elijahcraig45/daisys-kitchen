@@ -389,6 +389,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           'Published by everyone',
         ),
         ListTile(
+          leading: const Icon(Icons.shopping_basket_outlined),
+          title: const Text('Groceries'),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          onTap: () {
+            Navigator.of(context).maybePop();
+            context.push('/groceries');
+          },
+        ),
+        ListTile(
           leading: const Icon(Icons.group_outlined),
           title: Text(ref.watch(myHouseholdProvider).valueOrNull == null
               ? 'Set up a household'

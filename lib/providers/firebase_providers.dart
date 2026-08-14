@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:recipe_keeper/services/auth_service.dart';
 import 'package:recipe_keeper/services/firestore_service.dart';
+import 'package:recipe_keeper/services/grocery_service.dart';
 import 'package:recipe_keeper/services/household_service.dart';
 import 'package:recipe_keeper/models/recipe.dart';
 
@@ -65,6 +66,16 @@ final myHouseholdProvider = StreamProvider<Household?>((ref) {
 enum RecipeScope { mine, household, community }
 
 final recipeScopeProvider = StateProvider<RecipeScope>((ref) => RecipeScope.mine);
+
+/// The household grocery list.
+final groceryServiceProvider = Provider<GroceryService>((ref) => GroceryService());
+
+/// Items on a household's list. Family-scoped by household id, so the stream is torn
+/// down and rebuilt if someone joins or leaves rather than watching a stale list.
+final groceryItemsProvider =
+    StreamProvider.family<List<GroceryItem>, String>((ref, householdId) {
+  return ref.watch(groceryServiceProvider).watchItems(householdId);
+});
 
 /// Recipe ids saved from the community. A save is a reference; editing forks it.
 final savedRecipeIdsProvider = StreamProvider<Set<String>>((ref) {

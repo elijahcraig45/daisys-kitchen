@@ -367,3 +367,28 @@ test('a saved reference cannot be written to someone else shelf', async () => {
     setDoc(doc(as('stranger'), 'users/henry/savedRecipes/pub'), { savedAt: 1 }),
   );
 });
+
+/* The list is keyed by household id rather than auto-generated, so two members opening it
+   at the same moment cannot create two lists. That means the document id and the
+   householdId field must agree, or the rules would let someone create a list at another
+   household's id. */
+test('a list cannot be created at another household id', async () => {
+  await assertFails(
+    setDoc(doc(as('stranger'), 'groceryLists/home'), { householdId: 'home', name: 'Theirs' }),
+  );
+});
+
+test('a member can create their own household list', async () => {
+  await assertSucceeds(
+    setDoc(doc(as('henry'), 'groceryLists/home'), { householdId: 'home', name: 'Groceries' }),
+  );
+});
+
+test('ticking an item off writes history only for your own household', async () => {
+  await assertSucceeds(
+    setDoc(doc(as('tee'), 'groceryHistory/home/purchases/p9'), { canonicalName: 'orzo' }),
+  );
+  await assertFails(
+    setDoc(doc(as('loner'), 'groceryHistory/home/purchases/p10'), { canonicalName: 'orzo' }),
+  );
+});

@@ -211,12 +211,33 @@ when families differ rather than converting. Sources accumulate.
 `firebase_providers.dart`. Add-from-recipe and manual entry. Rules and indexes as needed,
 with emulator tests for member/non-member access.
 
-### T3.5 Gemini fallback for unparsed lines — R3.4
+### T3.5 Gemini fallback for unparsed lines — R3.4 — DEFERRED
+The deterministic parser handles every amount string in this database, including the
+awkward ones, and it has tests to prove it. Adding a paid AI call for a case that does not
+currently occur would add cost, latency and a failure mode to buy nothing. An unparsed
+ingredient already lands on the list without a quantity, which is the honest outcome.
+
+Worth revisiting only if real lists start showing quantity-less lines that a person could
+have read. Until then the cache collection and its rules are in place, so it is a small
+addition rather than a redesign.
+
+### T3.5b (original) Gemini fallback for unparsed lines — R3.4
 Only for what T3.1 cannot resolve. Cache in Firestore keyed by the raw string so it is
 paid for once across all users. Respect `gemini_enabled`; on failure list the item
 unparsed rather than blocking.
 
-### T3.6 Wall calendar grocery page — R3.8
+### T3.6 Wall calendar grocery page — R3.8 — DEFERRED
+Needs the wall's first Firestore credential: a service account on recipe-f644f with
+roles/datastore.user, a key in secrets/, and a backup in the private secrets repo. That is
+a new credential to manage on an appliance, for a screen nobody can use until the lists
+have been in real use for a while.
+
+The list is already usable on a phone in the shop, which is where a grocery list is
+actually needed — the wall is a nice-to-have. Deferred until the lists have earned it.
+`quantityLabel` is already stored pre-rendered on each item specifically so the wall can
+display the list later without needing the Dart parser.
+
+### T3.6b (original) Wall calendar grocery page — R3.8
 Service account on `recipe-f644f` with `roles/datastore.user`, key in
 `wallCalendar/secrets/`, backed up to `wallCalendar-secrets`. A `/groceries` page grouped
 by aisle with check-off. Note the wall's rail is already at seven items with a test

@@ -93,6 +93,30 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     return id;
   }
 
+  Future<void> _addToGroceries(Recipe recipe) async {
+    final household = ref.read(myHouseholdProvider).valueOrNull;
+    if (household == null) {
+      // Says what to do rather than failing quietly: the list is a household thing.
+      SnackBarHelper.showInfo(
+        context,
+        'Set up a household first — the grocery list is shared with it.',
+      );
+      return;
+    }
+
+    final messenger = ScaffoldMessenger.of(context);
+    final added = await ref
+        .read(groceryServiceProvider)
+        .addRecipe(household.id, recipe);
+    messenger.showSnackBar(SnackBar(
+      // Says how many were NEW, because the rest were merged into lines already there
+      // and a flat "added 12 items" would be wrong.
+      content: Text(added == 0
+          ? 'Everything was already on the list — quantities updated.'
+          : 'Added $added item(s) to the groceries.'),
+    ));
+  }
+
   Future<void> _reportRecipe(Recipe recipe) async {
     final controller = TextEditingController();
     final reason = await showDialog<String>(
@@ -263,6 +287,16 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
               PopupMenuButton(
                 icon: const Icon(Icons.more_vert),
                 itemBuilder: (c) => [
+                  const PopupMenuItem(
+                    value: 'groceries',
+                    child: Row(
+                      children: [
+                        Icon(Icons.add_shopping_cart_outlined),
+                        SizedBox(width: 8),
+                        Text('Add to groceries'),
+                      ],
+                    ),
+                  ),
                   if (!_isMine(recipe))
                     const PopupMenuItem(
                       value: 'report',
@@ -299,7 +333,9 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                   ),
                 ],
                 onSelected: (v) async {
-                  if (v == 'report') {
+                  if (v == 'groceries') {
+                    await _addToGroceries(recipe);
+                  } else if (v == 'report') {
                     await _reportRecipe(recipe);
                   } else if (v == 'edit') {
                     // Editing someone else's recipe makes a copy rather than changing
