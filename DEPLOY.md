@@ -118,6 +118,48 @@ it starts from a fresh checkout.
   longer write that field, which is the point: anything that can write it can promote
   itself. Nothing needs an admin until a report is filed.
 
+## Re-hosted recipe images — two steps left
+
+`cacheRecipeImage` is deployed and refuses unauthenticated callers, but it cannot copy
+anything until the project has a Storage bucket. Everything else for it is live.
+
+**1. Create the bucket.** The Cloud Storage for Firebase API is not enabled, and the
+bucket's location is permanent once chosen — so this is a deliberate decision rather than
+something to script. Firebase console → Storage → Get started, and pick **us-central1** to
+match the functions; a cross-region read is billed as egress.
+
+The bucket will be `recipe-f644f.firebasestorage.app`. If it comes out as something else,
+the function names what it tried in the error rather than failing quietly, and
+`RECIPE_IMAGE_BUCKET` overrides it. Then:
+
+```
+env -u GOOGLE_APPLICATION_CREDENTIALS firebase deploy --only storage
+```
+
+`storage.rules` denies every read and write: the only writer is the function via the Admin
+SDK, and reads go through the download token in each `cachedImageUrl`. Verify both after
+deploying — a token URL should return the image with
+`access-control-allow-origin: *`, and the same object by plain path should 403.
+
+**2. Clean three live recipes.** `updateRecipe` used to write `updatedByEmail`, and recipes
+are world-readable when public, so an address is on three of them right now. The write is
+gone and the rules refuse it, but the stored values need deleting:
+
+```
+cd scripts
+export FIRESTORE_ACCESS_TOKEN=$(gcloud auth print-access-token --account=elijahcraig45@gmail.com)
+node cleanup_recipes.js                # dry run: 3 emails, 2 unusable imageUrls
+node cleanup_recipes.js --commit
+node cleanup_recipes.js --commit        # must report "already clean"
+```
+
+It also empties two `imageUrl` values that cannot render — a truncated `data:` URI and an
+`example.com` placeholder — so the app draws its own placeholder instead of a broken image.
+Recipes and users were backed up to `~/Documents/personalDev/recipes-backups` first.
+
+Existing images are copied lazily: opening one of your own recipes fires the call once per
+session, and saving one does too. Nothing to run.
+
 ## The wall calendar
 
 Separate repo, separate deploy, and it no longer cares about the order above: it tries the
