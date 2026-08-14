@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:recipe_keeper/services/auth_service.dart';
 import 'package:recipe_keeper/services/firestore_service.dart';
+import 'package:recipe_keeper/services/household_service.dart';
 import 'package:recipe_keeper/models/recipe.dart';
 
 // Filter state providers for Firestore
@@ -51,6 +52,25 @@ final recipesStreamProvider = StreamProvider<List<Recipe>>((ref) {
   return firestoreService.getRecipesStream();
 });
 
+/// Households: create, invite, join, leave.
+final householdServiceProvider = Provider<HouseholdService>((ref) => HouseholdService());
+
+/// The signed-in user's household, or null.
+final myHouseholdProvider = StreamProvider<Household?>((ref) {
+  return ref.watch(householdServiceProvider).watchMyHousehold();
+});
+
+/// Which slice of the library is on screen. Filtering happens here rather than in a
+/// screen, so every surface agrees about what "mine" means.
+enum RecipeScope { mine, household, community }
+
+final recipeScopeProvider = StateProvider<RecipeScope>((ref) => RecipeScope.mine);
+
+/// Recipe ids saved from the community. A save is a reference; editing forks it.
+final savedRecipeIdsProvider = StreamProvider<Set<String>>((ref) {
+  return ref.watch(firestoreServiceProvider).watchSavedRecipeIds();
+});
+
 /// The signed-in user's favourite recipe ids.
 ///
 /// Favourites moved off the recipe document — an `isFavorite` field there was shared
@@ -67,6 +87,10 @@ final firestoreFilteredRecipesProvider = Provider<List<Recipe>>((ref) {
   final selectedCategory = ref.watch(selectedCategoryProvider);
   final selectedDifficulty = ref.watch(selectedDifficultyProvider);
   final showFavoritesOnly = ref.watch(showFavoritesOnlyProvider);
+  final scope = ref.watch(recipeScopeProvider);
+  final myUid = ref.watch(currentUserProvider).valueOrNull?.uid;
+  final myHouseholdId = ref.watch(myHouseholdProvider).valueOrNull?.id;
+  final savedIds = ref.watch(savedRecipeIdsProvider).valueOrNull ?? const <String>{};
 
   return recipesAsync.when(
     data: (recipes) {
@@ -76,7 +100,24 @@ final firestoreFilteredRecipesProvider = Provider<List<Recipe>>((ref) {
         recipe.isFavorite =
             recipe.firestoreId != null && favoriteIds.contains(recipe.firestoreId);
       }
-      var filtered = recipes;
+      // The stream carries everything this viewer may see; the scope decides which
+      // slice is on screen. Filtered here rather than in a screen so every surface
+      // agrees about what "mine" means.
+      var filtered = recipes.where((r) {
+        switch (scope) {
+          case RecipeScope.mine:
+            // Mine is what I wrote plus what I saved from the community — the shelf,
+            // not the authorship.
+            return r.createdBy == myUid ||
+                (r.firestoreId != null && savedIds.contains(r.firestoreId));
+          case RecipeScope.household:
+            return myHouseholdId != null &&
+                r.visibility == 'household' &&
+                r.householdId == myHouseholdId;
+          case RecipeScope.community:
+            return r.visibility == 'public';
+        }
+      }).toList();
 
       // Search filter — matches what the search field advertises: name,
       // ingredients and tags, plus description, category and cuisine.

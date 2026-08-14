@@ -31,6 +31,9 @@ class RecipeMapper {
       'visibility': _visibility(recipe.visibility),
       'householdId': recipe.visibility == 'household' ? recipe.householdId : null,
       'forkedFrom': recipe.forkedFrom,
+      // createdBy and createdByName are deliberately absent: FirestoreService stamps
+      // them on create, and the rules refuse any update that changes createdBy. Writing
+      // them from here would let an edit attempt to reassign authorship.
     };
   }
 
@@ -66,6 +69,8 @@ class RecipeMapper {
     recipe.visibility = _visibility(data['visibility']);
     recipe.householdId = data['householdId'] as String?;
     recipe.forkedFrom = data['forkedFrom'] as String?;
+    recipe.createdBy = data['createdBy'] as String?;
+    recipe.createdByName = data['createdByName'] as String?;
     recipe.createdAt = _dateTime(data['createdAt']) ?? recipe.createdAt;
     recipe.updatedAt = _dateTime(data['updatedAt']) ?? recipe.updatedAt;
 

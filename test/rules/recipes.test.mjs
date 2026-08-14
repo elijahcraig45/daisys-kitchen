@@ -336,3 +336,34 @@ test('the ingredient cache is readable but never client-writable', async () => {
   assert.equal(snap.data().quantity, 1);
   await assertFails(setDoc(doc(as('henry'), 'ingredientCache/def'), { quantity: 2 }));
 });
+
+/* ---------- save and fork (R2.3, R2.4) ---------- */
+
+test('saving a community recipe writes only to my own shelf', async () => {
+  await assertSucceeds(
+    setDoc(doc(as('stranger'), 'users/stranger/savedRecipes/pub'),
+      { savedAt: 1, authorUid: 'henry', authorName: 'Henry' }),
+  );
+  // ...and touches nothing on the recipe itself.
+  await assertFails(updateDoc(doc(as('stranger'), 'recipes/pub'), { title: 'Mine now' }));
+});
+
+test('a fork is a new recipe owned by the forker, starting private', async () => {
+  await assertSucceeds(
+    setDoc(doc(as('stranger'), 'recipes/forked'),
+      recipeDoc({ createdBy: 'stranger', visibility: 'private', forkedFrom: 'pub' })),
+  );
+});
+
+test('a fork cannot claim someone else as its author', async () => {
+  await assertFails(
+    setDoc(doc(as('stranger'), 'recipes/forged'),
+      recipeDoc({ createdBy: 'henry', visibility: 'private', forkedFrom: 'pub' })),
+  );
+});
+
+test('a saved reference cannot be written to someone else shelf', async () => {
+  await assertFails(
+    setDoc(doc(as('stranger'), 'users/henry/savedRecipes/pub'), { savedAt: 1 }),
+  );
+});

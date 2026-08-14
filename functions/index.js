@@ -1,7 +1,7 @@
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { defineSecret } = require('firebase-functions/params');
 const { initializeApp } = require('firebase-admin/app');
-const { getFirestore } = require('firebase-admin/firestore');
+const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const dns = require('node:dns').promises;
 const net = require('node:net');
 
@@ -21,6 +21,13 @@ const DEFAULT_MODEL = 'gemini-2.5-flash';
 // Seeds users/{uid}.aiEnabled on first authorised call. The Firestore flag is the
 // source of truth so access can be granted or revoked without a deploy.
 const AI_SEED_EMAILS = ['elijahcraig45@gmail.com', 'teemoore00@gmail.com'];
+
+// Unambiguous characters only: no O/0, I/1/L, so a code read aloud or off a screen
+// cannot be mistyped into someone else's household.
+const INVITE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const INVITE_LENGTH = 6;
+const INVITE_TTL_DAYS = 14;
+const MAX_HOUSEHOLD_MEMBERS = 12;
 
 const MAX_PROXY_BYTES = 2 * 1024 * 1024;
 const MAX_REDIRECTS = 5;
@@ -233,3 +240,181 @@ exports.geminiProxy = onCall({ ...COMMON, secrets: [geminiApiKey], timeoutSecond
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? null;
     return { text };
   });
+
+
+/* ---------------------------------------------------------------------------
+ * Households
+ *
+ * Joining is a function rather than a rule for two reasons: a rule permissive enough
+ * to let a non-member append themselves to memberUids is permissive enough to let them
+ * append themselves to ANY household, and verifying an invite code inside rules means
+ * trusting a code the writer supplied. Here the code is looked up server-side and both
+ * writes happen together.
+ * ------------------------------------------------------------------------- */
+
+function requireDurableAccount(request) {
+  const auth = request.auth;
+  if (!auth) {
+    throw new HttpsError('unauthenticated', 'Sign in first.');
+  }
+  if (auth.token.firebase?.sign_in_provider === 'anonymous') {
+    throw new HttpsError(
+      'permission-denied',
+      'Households need a Google account, so members can be identified.',
+    );
+  }
+  return auth;
+}
+
+function newInviteCode() {
+  let code = '';
+  for (let i = 0; i < INVITE_LENGTH; i += 1) {
+    code += INVITE_ALPHABET[Math.floor(Math.random() * INVITE_ALPHABET.length)];
+  }
+  return code;
+}
+
+/** Creates an invite for the caller's household, replacing any code they had. */
+exports.createHouseholdInvite = onCall(COMMON, async (request) => {
+  const auth = requireDurableAccount(request);
+  const db = getFirestore();
+
+  const user = await db.collection('users').doc(auth.uid).get();
+  const householdId = user.data()?.householdId;
+  if (!householdId) {
+    throw new HttpsError('failed-precondition', 'Create a household first.');
+  }
+
+  const household = await db.collection('households').doc(householdId).get();
+  if (!household.exists || !(household.data().memberUids || []).includes(auth.uid)) {
+    throw new HttpsError('permission-denied', 'You are not in that household.');
+  }
+
+  // One live code per household: an old one left valid is a way in that nobody
+  // remembers handing out.
+  const existing = await db.collection('householdInvites')
+    .where('householdId', '==', householdId).get();
+  await Promise.all(existing.docs.map((d) => d.ref.delete()));
+
+  const code = newInviteCode();
+  const expiresAt = new Date(Date.now() + INVITE_TTL_DAYS * 24 * 60 * 60 * 1000);
+  await db.collection('householdInvites').doc(code).set({
+    householdId,
+    createdBy: auth.uid,
+    createdAt: FieldValue.serverTimestamp(),
+    expiresAt,
+  });
+
+  return { code, expiresAt: expiresAt.toISOString() };
+});
+
+exports.joinHousehold = onCall(COMMON, async (request) => {
+  const auth = requireDurableAccount(request);
+  const raw = request.data?.code;
+  if (typeof raw !== 'string' || raw.trim().length === 0) {
+    throw new HttpsError('invalid-argument', 'Enter an invite code.');
+  }
+  const code = raw.trim().toUpperCase();
+
+  const db = getFirestore();
+  const userRef = db.collection('users').doc(auth.uid);
+
+  const current = await userRef.get();
+  if (current.data()?.householdId) {
+    // Refused rather than silently moved: belonging to two households is not a state
+    // this data model has, and losing access to the first one should be deliberate.
+    throw new HttpsError(
+      'failed-precondition',
+      'You are already in a household. Leave it before joining another.',
+    );
+  }
+
+  const inviteRef = db.collection('householdInvites').doc(code);
+
+  // A transaction because two people redeeming the last seat at once would otherwise
+  // both succeed.
+  const householdName = await db.runTransaction(async (tx) => {
+    const invite = await tx.get(inviteRef);
+    if (!invite.exists) {
+      throw new HttpsError('not-found', 'That code is not valid.');
+    }
+    const { householdId, expiresAt } = invite.data();
+    if (expiresAt?.toDate && expiresAt.toDate() < new Date()) {
+      throw new HttpsError('deadline-exceeded', 'That code has expired.');
+    }
+
+    const householdRef = db.collection('households').doc(householdId);
+    const household = await tx.get(householdRef);
+    if (!household.exists) {
+      throw new HttpsError('not-found', 'That household no longer exists.');
+    }
+    const members = household.data().memberUids || [];
+    if (members.includes(auth.uid)) {
+      return household.data().name;
+    }
+    if (members.length >= MAX_HOUSEHOLD_MEMBERS) {
+      throw new HttpsError('resource-exhausted', 'That household is full.');
+    }
+
+    tx.update(householdRef, { memberUids: FieldValue.arrayUnion(auth.uid) });
+    tx.set(userRef, { householdId }, { merge: true });
+    return household.data().name;
+  });
+
+  return { householdId: (await userRef.get()).data().householdId, name: householdName };
+});
+
+exports.leaveHousehold = onCall(COMMON, async (request) => {
+  const auth = requireDurableAccount(request);
+  const db = getFirestore();
+  const userRef = db.collection('users').doc(auth.uid);
+
+  const user = await userRef.get();
+  const householdId = user.data()?.householdId;
+  if (!householdId) {
+    throw new HttpsError('failed-precondition', 'You are not in a household.');
+  }
+
+  await db.runTransaction(async (tx) => {
+    const householdRef = db.collection('households').doc(householdId);
+    const household = await tx.get(householdRef);
+    if (household.exists) {
+      tx.update(householdRef, { memberUids: FieldValue.arrayRemove(auth.uid) });
+    }
+    tx.set(userRef, { householdId: null }, { merge: true });
+  });
+
+  // Recipes shared to the household are deliberately left alone. They still belong to
+  // whoever wrote them, and silently republishing or deleting someone's recipe because a
+  // housemate left would be worse than leaving it where it is.
+  return { left: householdId };
+});
+
+/** Creates a household with the caller as its only member, and puts them in it. */
+exports.createHousehold = onCall(COMMON, async (request) => {
+  const auth = requireDurableAccount(request);
+  const name = (request.data?.name || '').toString().trim() || 'Our Kitchen';
+  if (name.length > 100) {
+    throw new HttpsError('invalid-argument', 'That name is too long.');
+  }
+
+  const db = getFirestore();
+  const userRef = db.collection('users').doc(auth.uid);
+  const user = await userRef.get();
+  if (user.data()?.householdId) {
+    throw new HttpsError('failed-precondition', 'You are already in a household.');
+  }
+
+  const householdRef = db.collection('households').doc();
+  await db.runTransaction(async (tx) => {
+    tx.set(householdRef, {
+      name,
+      createdBy: auth.uid,
+      createdAt: FieldValue.serverTimestamp(),
+      memberUids: [auth.uid],
+    });
+    tx.set(userRef, { householdId: householdRef.id }, { merge: true });
+  });
+
+  return { householdId: householdRef.id, name };
+});

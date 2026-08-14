@@ -73,6 +73,16 @@ class Recipe {
   @JsonKey(includeFromJson: true, includeToJson: true)
   String? forkedFrom;
 
+  /// Author. Written by the server on create and never changed afterwards — the rules
+  /// refuse an update that moves it, so a recipe cannot be handed to someone else.
+  @JsonKey(includeFromJson: true, includeToJson: true)
+  String? createdBy;
+
+  /// Display name only. There used to be a createdByEmail alongside this on a
+  /// world-readable document, which made every author's address public.
+  @JsonKey(includeFromJson: true, includeToJson: true)
+  String? createdByName;
+
   Recipe({
     this.title = '',
     this.description = '',

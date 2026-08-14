@@ -379,6 +379,98 @@ class FirestoreService {
     });
   }
 
+  /// Recipe ids the signed-in user has saved from the community.
+  ///
+  /// A save is a reference, not a copy, so the author's later corrections are what the
+  /// reader sees. It becomes a copy the moment they edit it — see [forkForEditing].
+  Stream<Set<String>> watchSavedRecipeIds() {
+    return _auth.authStateChanges().asyncExpand((user) {
+      if (user == null) return Stream.value(<String>{});
+      return _firestore
+          .collection('users')
+          .doc(user.uid)
+          .collection('savedRecipes')
+          .snapshots()
+          .map((snap) => snap.docs.map((d) => d.id).toSet());
+    });
+  }
+
+  /// Save or unsave a community recipe.
+  Future<bool> setSaved(Recipe recipe, bool saved) async {
+    final user = _auth.currentUser;
+    final id = recipe.firestoreId;
+    if (user == null || id == null) return false;
+    try {
+      final ref = _firestore
+          .collection('users').doc(user.uid)
+          .collection('savedRecipes').doc(id);
+      if (saved) {
+        await ref.set({
+          'savedAt': FieldValue.serverTimestamp(),
+          'authorUid': recipe.createdBy,
+          'authorName': recipe.createdByName,
+        });
+      } else {
+        await ref.delete();
+      }
+      return true;
+    } catch (e) {
+      LoggerService.error('Could not change saved state', error: e, tag: 'Firestore');
+      return false;
+    }
+  }
+
+  /// Copies someone else's recipe so the signed-in user can edit their own version.
+  ///
+  /// Returns the new id. The original is untouched: the rules would refuse a write to it
+  /// anyway, and quietly editing a stranger's recipe is not what "edit" should mean. The
+  /// copy starts private — republishing someone else's work without being asked is not a
+  /// decision this should make on the user's behalf.
+  Future<String?> forkForEditing(Recipe original) async {
+    final user = _auth.currentUser;
+    if (user == null || original.firestoreId == null) return null;
+    try {
+      final data = RecipeMapper.toFirestore(original);
+      data['createdAt'] = FieldValue.serverTimestamp();
+      data['updatedAt'] = FieldValue.serverTimestamp();
+      data['createdBy'] = user.uid;
+      data['createdByName'] = user.displayName ?? 'Someone';
+      data['forkedFrom'] = original.firestoreId;
+      data['visibility'] = 'private';
+      data['householdId'] = null;
+
+      final docRef = await _recipesCollection.add(data);
+      // The reference is replaced by the copy, so the shelf shows one of them.
+      await setSaved(original, false);
+      LoggerService.success('Forked ${original.title} -> ${docRef.id}', 'Firestore');
+      return docRef.id;
+    } catch (e) {
+      LoggerService.error('Could not fork recipe', error: e, tag: 'Firestore');
+      return null;
+    }
+  }
+
+  /// Reports a public recipe for an admin to look at.
+  ///
+  /// The reporter is recorded so a report can be traced, and the rules make reports
+  /// readable only by admins so an author never learns who reported them.
+  Future<bool> reportRecipe(String recipeId, String reason) async {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+    try {
+      await _firestore.collection('reports').add({
+        'recipeId': recipeId,
+        'reportedBy': user.uid,
+        'reason': reason.trim(),
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      return true;
+    } catch (e) {
+      LoggerService.error('Could not file report', error: e, tag: 'Firestore');
+      return false;
+    }
+  }
+
   /// Import recipes from JSON (bulk add)
   Future<int> importRecipes(List<Recipe> recipes) async {
     int count = 0;
