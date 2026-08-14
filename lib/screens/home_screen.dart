@@ -399,6 +399,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             context.push('/household');
           },
         ),
+        ListTile(
+          leading: const Icon(Icons.privacy_tip_outlined),
+          title: const Text('Privacy and terms'),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          onTap: () {
+            Navigator.of(context).maybePop();
+            context.push('/privacy');
+          },
+        ),
         const Divider(),
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),

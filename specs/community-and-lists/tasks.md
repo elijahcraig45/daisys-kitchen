@@ -225,7 +225,29 @@ live under Recipes.
 
 ---
 
-## Phase 4 — weekly ads and rebuy learning
+## Phase 4 — weekly ads and rebuy learning — DEFERRED
+
+**Not being built now, and this is a decision rather than an omission.**
+
+The brief for this work is a publishable, safe app with simple, effective features on a
+stack that stays cheap. Phase 4 is the worst trade in the spec against that: flyer
+matching plus cadence learning is the largest amount of machinery, the only dependency
+with no stability guarantee (an undocumented endpoint whose permissive CORS header could
+be withdrawn without notice), and the part users would notice least if it never arrived.
+Rebuy learning also cannot say anything useful until a household has weeks of purchase
+history, so shipping it at launch would ship a feature that does nothing yet.
+
+Kept in the spec rather than deleted because the groundwork is genuinely done: the
+endpoints are verified, the payload shapes are captured, `groceryHistory` is in the data
+model, and the matching algorithm and its confidence floor are written down in
+`design.md`. Picking it up later is a build, not a rediscovery.
+
+Revisit when the lists are actually being used weekly. Until then the honest position is
+that a grocery list which is correct and quick beats one that guesses at prices.
+
+The original tasks follow, unchanged, for whoever picks this up.
+
+
 
 ### T4.1 Flipp client — R4.1, R4.3
 `lib/services/flipp_service.dart`: item search plus `merchant_id → merchant` from

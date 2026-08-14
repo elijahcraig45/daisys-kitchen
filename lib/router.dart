@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:recipe_keeper/models/recipe.dart';
 import 'package:recipe_keeper/screens/home_screen.dart';
 import 'package:recipe_keeper/screens/household_screen.dart';
+import 'package:recipe_keeper/screens/privacy_screen.dart';
 import 'package:recipe_keeper/screens/recipe_detail_screen.dart';
 import 'package:recipe_keeper/screens/recipe_editor_screen.dart';
 import 'package:recipe_keeper/screens/cooking_mode_screen.dart';
@@ -14,6 +15,11 @@ final router = GoRouter(
       path: '/',
       name: 'home',
       builder: (context, state) => const HomeScreen(),
+    ),
+    GoRoute(
+      path: '/privacy',
+      name: 'privacy',
+      builder: (context, state) => const PrivacyScreen(),
     ),
     GoRoute(
       path: '/household',
