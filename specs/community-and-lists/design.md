@@ -86,7 +86,7 @@ returning `[{document, readTime}, …]`), which is what the wall's change depend
 
 Replaces the current file. `isAdmin()` keeps reading `users/{uid}.isAdmin`, and
 `auth_service.dart` is changed to read the same field rather than comparing emails
-(R1.12).
+(R1.13).
 
 ```
 rules_version = '2';

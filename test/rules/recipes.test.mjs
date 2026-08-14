@@ -21,7 +21,7 @@ import {
   assertFails,
   assertSucceeds,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { deleteDoc, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const rules = readFileSync(join(here, '..', '..', 'firestore.rules'), 'utf8');
@@ -140,4 +140,49 @@ test('PRE-R1.3 a stranger can read a user profile, including the email', async (
   });
   const snap = await assertSucceeds(getDoc(doc(asOther(), 'users/henry')));
   assert.equal(snap.data().email, 'henry@example.com');
+});
+
+/* Privilege escalation, found while adding aiEnabled to the write denylist.
+   `users/{userId}` allows the owner to write ANY field, and rules resolve admin by
+   reading users/{uid}.isAdmin — so a signed-in user can make themselves an admin, and
+   an admin may edit and delete every recipe in the database. aiEnabled is the same
+   shape: server-side AI gating leaks straight back into client control. */
+test('a user cannot make themselves an admin', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'users/other'), { email: 'other@example.com' });
+  });
+  await assertFails(updateDoc(doc(asOther(), 'users/other'), { isAdmin: true }));
+});
+
+test('a user cannot grant themselves AI access', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'users/other'), { email: 'other@example.com' });
+  });
+  await assertFails(updateDoc(doc(asOther(), 'users/other'), { aiEnabled: true }));
+});
+
+test('a user can still update their own harmless profile fields', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'users/other'), { email: 'other@example.com' });
+  });
+  await assertSucceeds(updateDoc(doc(asOther(), 'users/other'), { displayName: 'Other' }));
+});
+
+test('a new account cannot create itself as an admin', async () => {
+  await assertFails(
+    setDoc(doc(asOther(), 'users/other'), { email: 'other@example.com', isAdmin: true }),
+  );
+  await assertFails(
+    setDoc(doc(asOther(), 'users/other'), { email: 'other@example.com', aiEnabled: true }),
+  );
+  await assertSucceeds(
+    setDoc(doc(asOther(), 'users/other'), { email: 'other@example.com' }),
+  );
+});
+
+test('a profile cannot be deleted, so an admin flag cannot be reset by removing it', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'users/other'), { email: 'other@example.com' });
+  });
+  await assertFails(deleteDoc(doc(asOther(), 'users/other')));
 });

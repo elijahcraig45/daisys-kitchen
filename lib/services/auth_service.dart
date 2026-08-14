@@ -151,7 +151,9 @@ class AuthService {
         'email': user.email,
         'displayName': user.displayName,
         'photoURL': user.photoURL,
-        'isAdmin': _adminEmails.contains(user.email),
+        // isAdmin is deliberately NOT written here. It decides who may edit and delete
+        // every recipe, and firestore.rules resolves admin by reading it — so a client
+        // that can write it can promote itself. Set it in Firestore directly.
         'lastSignIn': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
       

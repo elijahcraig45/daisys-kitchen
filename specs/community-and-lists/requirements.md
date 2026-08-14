@@ -163,7 +163,25 @@ should not be the control.
 Community features mean strangers can write to the database. Nothing today caps document
 size, so a single write could be a megabyte of text repeated as often as someone likes.
 
-### R1.12 Admin is resolved one way
+### R1.12 A user cannot grant themselves privileges
+
+- **Given** any signed-in user
+- **When** they write their own `users/{uid}` document, on create or on update
+- **Then** they cannot set `isAdmin` or `aiEnabled`
+- **And** they can still change their display name and photo.
+
+Live escalation, found while adding `aiEnabled` to the write denylist and confirmed
+with a rules test. `users/{userId}` allowed `write` on the whole document, and
+`isAdmin()` in those same rules resolves admin by **reading that field** — so any
+signed-in user could set `isAdmin: true` on themselves and then edit or delete every
+recipe in the database. `aiEnabled` has the same shape: it gates paid AI calls, so
+client control of it defeats the server-side check entirely.
+
+Consequence: `auth_service.dart::_updateUserProfile` can no longer write `isAdmin` from
+`AdminConfig.adminEmails` on sign-in. Admin is set in Firestore directly, which is also
+the single source R1.13 asks for.
+
+### R1.13 Admin is resolved one way
 
 - **Given** the rules and the app
 - **When** either decides whether a user is an admin

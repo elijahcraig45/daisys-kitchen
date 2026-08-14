@@ -166,6 +166,8 @@ exports.recipeAutofillProxy = onCall(COMMON, async (request) => {
     });
 
     if ([301, 302, 303, 307, 308].includes(upstream.status)) {
+      // Nothing reads a redirect's body, and this function is invoked repeatedly.
+      upstream.body?.resume();
       const location = upstream.headers.get('location');
       if (!location) {
         throw new HttpsError('unavailable', 'That page redirected without a target.');

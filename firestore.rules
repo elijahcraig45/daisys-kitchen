@@ -13,7 +13,34 @@ service cloud.firestore {
     // Users collection - users can read/write their own profile
     match /users/{userId} {
       allow read: if true; // Public can view user profiles
-      allow write: if request.auth != null && request.auth.uid == userId;
+
+      // These decide what someone is allowed to do, so the client must never write
+      // them. `allow write` on the whole document meant a signed-in user could set
+      // isAdmin on themselves — and isAdmin() above reads exactly that field, which
+      // permits editing and deleting every recipe in the database. aiEnabled is the
+      // same shape: it gates paid AI calls, so client control of it defeats the
+      // server-side check in geminiProxy.
+      // Both are written by trusted code only. The functions use the Admin SDK, which
+      // bypasses these rules; isAdmin is set in Firestore directly. The client used to
+      // write isAdmin on every sign-in from AdminConfig.adminEmails and no longer does,
+      // because a client that can write this field can promote itself.
+      function claimsUnchanged() {
+        return !request.resource.data.diff(resource.data)
+                  .affectedKeys().hasAny(['isAdmin', 'aiEnabled']);
+      }
+
+      // Create is where the first sign-in writes the profile, so it needs the same
+      // guard: without it a new account could simply create itself as an admin.
+      function claimsNotAsserted() {
+        return request.resource.data.get('isAdmin', false) == false &&
+               request.resource.data.get('aiEnabled', false) == false;
+      }
+
+      allow create: if request.auth != null && request.auth.uid == userId &&
+                       claimsNotAsserted();
+      allow update: if request.auth != null && request.auth.uid == userId &&
+                       claimsUnchanged();
+      allow delete: if false;
     }
     
     // Recipes collection - public read, signed-in users can write

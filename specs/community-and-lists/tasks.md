@@ -39,7 +39,7 @@ at 2 MB, and narrow CORS to the app's origin.
 Verify: unauthenticated → refused; `http://169.254.169.254/…` → refused; a public URL that
 redirects to `127.0.0.1` → refused at the hop, not followed.
 
-### T0.4 General limits — R1.11
+### T0.4 General limits — R1.11, R1.12
 Size caps in `firestore.rules` on recipe writes (title, description, notes, ingredient and
 step counts) and an `https:`-only check on `imageUrl`. Enable App Check for Firestore and
 Functions — ship the client attestation first and turn on **enforcement** second, or the
@@ -49,11 +49,15 @@ app locks itself out. Set a budget alert on the billing account.
 
 ## Phase 1 — accounts, visibility, and the email fix
 
-### T1.1 Reconcile the two admin mechanisms — R1.12
+### T1.1 Reconcile the two admin mechanisms — R1.13
 `lib/services/auth_service.dart`. `isAdmin` compares the email against
 `AdminConfig.adminEmails`; rules read `users/{uid}.isAdmin`. Make the app read the
-Firestore field. Keep `AdminConfig` as the seed that `_updateUserProfile` writes, so
-there is still one place to name an admin, but only one place to *check*.
+Firestore field.
+
+Note `AdminConfig` can **not** remain a client-written seed: R1.12 closed the hole that
+let the client write `isAdmin` at all, so `_updateUserProfile` no longer sets it. Admin is
+set in Firestore directly. `AdminConfig` is then documentation of who should be one, or it
+goes away.
 Do this first: everything below leans on `isAdmin()`.
 
 ### T1.2 Add the new fields to both document shapes — R1.1
@@ -117,6 +121,18 @@ which takes no filter at all — to `:runQuery` with the structured query in `de
 The response shape changes to `[{"document": …}, …]` and entries may lack a `document`
 key; paging becomes `offset`/`limit`. Keep the wall's own suite green (97 Playwright, 72
 server assertions) and its parser tests passing.
+
+### T0.5 Deploy Phase 0 in order — R1.8, R1.10
+`firebase functions:secrets:set GEMINI_API_KEY` **first** — a functions deploy with no
+secret bound starts a `geminiProxy` that cannot work — then `--only functions`, then
+hosting, back to back.
+
+Autofill is broken between those last two whichever way round they go: the currently
+deployed bundle calls the old HTTP endpoint and the new one calls a callable. It is a
+short window, but it is not zero, so do not leave it half done.
+
+`--only firestore:rules` can go any time; the Phase 0 rules changes are additive
+(size caps, imageUrl, the privilege denylist) and break no existing client.
 
 ### T1.11 Deploy Phase 1 in order — R1.7
 `wall (T1.10)` → `indexes (T1.5)` → `migration (T1.9)` → `rules (T1.7)` → `hosting`.
