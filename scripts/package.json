@@ -1,0 +1,13 @@
+{
+  "name": "daisys-kitchen-scripts",
+  "private": true,
+  "description": "One-off maintenance scripts. Separate from functions/ so a migration's dependencies are never deployed.",
+  "scripts": {
+    "migrate:dry": "node migrate_visibility.js",
+    "migrate": "node migrate_visibility.js --commit",
+    "test:migration": "firebase emulators:exec --only firestore --project recipe-f644f 'bash test_migration.sh'"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  }
+}

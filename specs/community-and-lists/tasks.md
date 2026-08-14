@@ -135,7 +135,18 @@ short window, but it is not zero, so do not leave it half done.
 (size caps, imageUrl, the privilege denylist) and break no existing client.
 
 ### T1.11 Deploy Phase 1 in order — R1.7
-`wall (T1.10)` → `indexes (T1.5)` → `migration (T1.9)` → `rules (T1.7)` → `hosting`.
+**`indexes (T1.5)` → `migration (T1.9)` → `wall (T1.10)` → `rules (T1.7)` → `hosting`.**
+
+Corrected after testing the new wall query against production, where it returned
+`400 FAILED_PRECONDITION`. The original order in this file put the wall first, which is
+wrong twice over: the query needs the composite index to run at all, and it needs recipes
+to actually carry `visibility: "public"` before it returns anything. Deploying the wall
+first would have produced a blank Recipes page rather than a broken one — quieter and
+harder to spot.
+
+The migration is safe to run before the rules tighten: it only adds fields, and the
+current permissive rules allow it.
+
 Reversing rules and wall blanks the wall's Recipes page. Rules, indexes and functions are
 **not** in CI. Prefix every firebase command with `env -u GOOGLE_APPLICATION_CREDENTIALS`,
 and check `flutter config` has not written output to `server/build` before deploying
