@@ -26,7 +26,18 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
   void initState() {
     super.initState();
     _currentRecipe = widget.recipe;
-    if (_currentRecipe == null) _loadRecipe();
+    if (_currentRecipe == null) {
+      _loadRecipe();
+    } else {
+      _cacheImage(_currentRecipe!);
+    }
+  }
+
+  /// Backfill for recipes written before images were re-hosted: opening your own recipe
+  /// copies its image, once per session, and the stream picks the copy up. Not awaited and
+  /// not reported — the page has a perfectly good image to show either way.
+  void _cacheImage(Recipe recipe) {
+    ref.read(imageCacheServiceProvider).cacheIfNeeded(recipe);
   }
 
   /// Whether the signed-in user wrote this. Recipes predating `createdBy` have no author,
@@ -173,6 +184,9 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
         _currentRecipe = recipe;
         _isLoading = false;
       });
+      // Deep-linked in rather than tapped from the grid, so initState had nothing to act
+      // on and this is where the backfill belongs.
+      if (recipe != null) _cacheImage(recipe);
     }
   }
 
@@ -197,7 +211,8 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     final theme = Theme.of(context);
     final totalTime =
         (recipe.prepTimeMinutes ?? 0) + (recipe.cookTimeMinutes ?? 0);
-    final hasImage = recipe.imageUrl != null && recipe.imageUrl!.isNotEmpty;
+    final displayImage = recipe.displayImageUrl;
+    final hasImage = displayImage != null;
 
     return Scaffold(
       body: CustomScrollView(
@@ -226,7 +241,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                       fit: StackFit.expand,
                       children: [
                         CachedNetworkImage(
-                          imageUrl: recipe.imageUrl!,
+                          imageUrl: displayImage,
                           fit: BoxFit.cover,
                           placeholder: (context, url) => Container(
                             color: theme.colorScheme.surfaceContainerHighest,

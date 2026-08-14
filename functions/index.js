@@ -2,6 +2,8 @@ const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { defineSecret } = require('firebase-functions/params');
 const { initializeApp } = require('firebase-admin/app');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
+const { getStorage } = require('firebase-admin/storage');
+const crypto = require('node:crypto');
 const dns = require('node:dns').promises;
 const net = require('node:net');
 
@@ -30,6 +32,24 @@ const INVITE_TTL_DAYS = 14;
 const MAX_HOUSEHOLD_MEMBERS = 12;
 
 const MAX_PROXY_BYTES = 2 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+
+/* Re-hosted recipe images. The extension comes from the served content-type rather than
+   the URL, because a recipe photo is routinely served from a path with no extension at
+   all — and a URL's extension is a claim, not a fact. */
+const IMAGE_TYPES = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+};
+
+/* A bucket created today is <project>.firebasestorage.app; older projects got
+   <project>.appspot.com, and FIREBASE_CONFIG.storageBucket can disagree with both when the
+   bucket was provisioned after the project. Overridable, and checked for existence at call
+   time so a mismatch is a legible error instead of a silent failure. */
+const IMAGE_BUCKET =
+  process.env.RECIPE_IMAGE_BUCKET || 'recipe-f644f.firebasestorage.app';
 const MAX_REDIRECTS = 5;
 const COMMON = { region: 'us-central1', timeoutSeconds: 30, memory: '256MiB' };
 
@@ -123,17 +143,22 @@ async function assertPublicUrl(target) {
 }
 
 /** Reads at most `limit` bytes, so a huge or endless response can't exhaust memory. */
-async function readCapped(response, limit) {
+async function readCappedBuffer(response, limit, tooLarge) {
   let total = 0;
   const chunks = [];
   for await (const chunk of response.body) {
     total += chunk.length;
     if (total > limit) {
-      throw new HttpsError('resource-exhausted', 'That page is too large to import.');
+      throw new HttpsError('resource-exhausted', tooLarge);
     }
     chunks.push(chunk);
   }
-  return Buffer.concat(chunks).toString('utf8');
+  return Buffer.concat(chunks);
+}
+
+async function readCapped(response, limit) {
+  const buffer = await readCappedBuffer(response, limit, 'That page is too large to import.');
+  return buffer.toString('utf8');
 }
 
 /**
@@ -417,4 +442,151 @@ exports.createHousehold = onCall(COMMON, async (request) => {
   });
 
   return { householdId: householdRef.id, name };
+});
+
+/* ---------------------------------------------------------------------------
+ * Re-hosting recipe images
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Copies a recipe's image into this project's Storage bucket and records the copy as
+ * `cachedImageUrl`.
+ *
+ * Takes a recipeId and nothing else. The URL it fetches is read out of the recipe
+ * document server-side, so this cannot be pointed at an arbitrary address — the mistake
+ * recipeAutofillProxy used to make, and the reason that one is now a callable too.
+ *
+ * `imageUrl` is deliberately left alone. A client holding a recipe loaded before the copy
+ * existed would otherwise save its stale external URL back over the new one; instead the
+ * app prefers cachedImageUrl and falls back, and firestore.rules refuses client writes to
+ * the cached field, exactly as it does for isAdmin and aiEnabled.
+ *
+ * Access to the copy is by unguessable download token rather than by path: storage.rules
+ * denies reads outright, and the token in the URL is what authorises. So a private
+ * recipe's photo is no more reachable than the URL it is named in — capability, not
+ * secrecy by obscure path.
+ */
+exports.cacheRecipeImage = onCall({ ...COMMON, timeoutSeconds: 60 }, async (request) => {
+  const auth = requireDurableAccount(request);
+  const db = getFirestore();
+
+  const recipeId = request.data?.recipeId;
+  if (!recipeId || typeof recipeId !== 'string' || recipeId.length > 200) {
+    throw new HttpsError('invalid-argument', 'A recipeId is required.');
+  }
+
+  const ref = db.collection('recipes').doc(recipeId);
+  const snap = await ref.get();
+  if (!snap.exists) {
+    throw new HttpsError('not-found', 'That recipe does not exist.');
+  }
+  const recipe = snap.data();
+
+  if (recipe.createdBy !== auth.uid) {
+    const caller = await db.collection('users').doc(auth.uid).get();
+    if (caller.data()?.isAdmin !== true) {
+      throw new HttpsError('permission-denied', 'That is not your recipe.');
+    }
+  }
+
+  // Idempotent: a second call is a no-op rather than a second copy on the bill.
+  if (typeof recipe.cachedImageUrl === 'string' && recipe.cachedImageUrl) {
+    return { cached: false, url: recipe.cachedImageUrl };
+  }
+
+  const source = recipe.imageUrl;
+  if (!source || typeof source !== 'string' || !/^https?:\/\//i.test(source)) {
+    throw new HttpsError(
+      'failed-precondition',
+      'That recipe has no external image to copy.',
+    );
+  }
+
+  let target;
+  try {
+    target = new URL(source);
+  } catch (_) {
+    throw new HttpsError('failed-precondition', 'That image URL is not valid.');
+  }
+
+  let body;
+  let contentType;
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
+    await assertPublicUrl(target);
+
+    const upstream = await fetch(target.toString(), {
+      headers: {
+        'user-agent': 'daisys-kitchen-image-cache/1.0',
+        accept: 'image/avif,image/webp,image/jpeg,image/png,*/*;q=0.8',
+      },
+      redirect: 'manual',
+      size: 0,
+    });
+
+    if ([301, 302, 303, 307, 308].includes(upstream.status)) {
+      upstream.body?.resume();
+      const location = upstream.headers.get('location');
+      if (!location) {
+        throw new HttpsError('unavailable', 'That image redirected without a target.');
+      }
+      target = new URL(location, target);
+      continue;
+    }
+
+    if (!upstream.ok) {
+      throw new HttpsError('unavailable', `That image returned ${upstream.status}.`);
+    }
+
+    contentType = (upstream.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+    if (!IMAGE_TYPES[contentType]) {
+      upstream.body?.resume();
+      throw new HttpsError(
+        'failed-precondition',
+        `That URL served ${contentType || 'no content type'}, not an image.`,
+      );
+    }
+    body = await readCappedBuffer(upstream, MAX_IMAGE_BYTES, 'That image is too large.');
+    break;
+  }
+
+  if (!body) {
+    throw new HttpsError('unavailable', 'That image redirected too many times.');
+  }
+
+  const bucket = getStorage().bucket(IMAGE_BUCKET);
+  const [exists] = await bucket.exists();
+  if (!exists) {
+    // Named, because the usual cause is a bucket whose real name is not the one guessed
+    // from the project id, and that is otherwise a very quiet failure.
+    throw new HttpsError(
+      'failed-precondition',
+      `Storage bucket ${IMAGE_BUCKET} does not exist. Create it, or set RECIPE_IMAGE_BUCKET.`,
+    );
+  }
+
+  const token = crypto.randomUUID();
+  const path = `recipeImages/${recipeId}/original.${IMAGE_TYPES[contentType]}`;
+  await bucket.file(path).save(body, {
+    resumable: false,
+    metadata: {
+      contentType,
+      // The bytes never change under a given path, and a recipe card is read far more
+      // often than it is written.
+      cacheControl: 'public, max-age=31536000, immutable',
+      metadata: { firebaseStorageDownloadTokens: token },
+    },
+  });
+
+  const url =
+    `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/` +
+    `${encodeURIComponent(path)}?alt=media&token=${token}`;
+
+  await ref.update({
+    cachedImageUrl: url,
+    imageCachedAt: FieldValue.serverTimestamp(),
+    // Kept so the copy can always be traced back to where it came from.
+    imageSourceUrl: source,
+  });
+
+  return { cached: true, url, bytes: body.length, contentType };
 });

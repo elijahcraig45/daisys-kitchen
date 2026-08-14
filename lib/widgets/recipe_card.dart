@@ -89,7 +89,7 @@ class _Image extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final url = recipe.imageUrl;
+    final url = recipe.displayImageUrl;
     if (url == null || url.isEmpty) {
       return const _ImagePlaceholder();
     }

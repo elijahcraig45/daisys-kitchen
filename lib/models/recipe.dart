@@ -17,6 +17,22 @@ class Recipe {
   @JsonKey(includeFromJson: true, includeToJson: true)
   String? imageUrl;
 
+  /// This project's own copy of [imageUrl], written by the cacheRecipeImage function.
+  ///
+  /// Never written by the client — the mapper reads it and the rules refuse it, so a
+  /// recipe loaded before the copy existed cannot save its stale external URL back over
+  /// the new one.
+  @JsonKey(includeFromJson: true, includeToJson: false)
+  String? cachedImageUrl;
+
+  /// What to render: the copy if there is one, otherwise wherever the recipe pointed.
+  String? get displayImageUrl {
+    final cached = cachedImageUrl;
+    if (cached != null && cached.isNotEmpty) return cached;
+    final original = imageUrl;
+    return (original != null && original.isNotEmpty) ? original : null;
+  }
+
   late int servings;
 
   @JsonKey(includeFromJson: true, includeToJson: true)

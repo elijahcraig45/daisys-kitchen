@@ -1730,9 +1730,14 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
       recipe.firestoreId = widget.recipe!.firestoreId;
       recipe.createdAt = widget.recipe!.createdAt;
       await firestoreService.updateRecipe(widget.recipe!.firestoreId!, recipe);
+      _cacheImage(recipe);
     } else {
       // Create new recipe
       final id = await firestoreService.addRecipe(recipe);
+      if (id != null) {
+        recipe.firestoreId = id;
+        _cacheImage(recipe);
+      }
       if (id == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1750,6 +1755,13 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
     if (mounted) {
       context.pop(true);
     }
+  }
+
+  /// Re-hosts an externally linked image, without waiting for it. Deliberately not
+  /// awaited: whether the copy succeeds has no bearing on whether the recipe saved, and
+  /// the editor should close at the speed of the save.
+  void _cacheImage(Recipe recipe) {
+    ref.read(imageCacheServiceProvider).cacheIfNeeded(recipe);
   }
 }
 

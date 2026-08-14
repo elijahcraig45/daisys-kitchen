@@ -1,0 +1,23 @@
+rules_version = '2';
+
+/*
+ * Nothing in this bucket is client-writable, and nothing is readable by path.
+ *
+ * The only writer is cacheRecipeImage, through the Admin SDK, which bypasses these rules
+ * by design — so "deny everything" is the whole policy rather than a starting point. A
+ * client that could upload here would have a place to host arbitrary files on this
+ * project's bill.
+ *
+ * Reads work because a download token authorises independently of rules: the URL stored in
+ * a recipe's cachedImageUrl carries one. That makes a re-hosted photo exactly as reachable
+ * as the recipe document naming it, which matters for household and private recipes —
+ * `allow read: if true` would have made every copy public regardless of the recipe's
+ * visibility, since recipe ids appear in the public library.
+ */
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

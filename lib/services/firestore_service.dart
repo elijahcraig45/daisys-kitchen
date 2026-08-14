@@ -257,8 +257,10 @@ class FirestoreService {
       final data = RecipeMapper.toFirestore(recipe);
       data['updatedAt'] = FieldValue.serverTimestamp();
       data['updatedBy'] = user.uid;
-      data['updatedByEmail'] = user.email;
-      data['updatedByName'] = user.displayName ?? user.email;
+      // No updatedByEmail. A public recipe is world-readable, so an address here is
+      // published — the same reason createdByEmail was taken out of the schema. That fix
+      // missed this path, which put the author's address back on every recipe they edited.
+      data['updatedByName'] = user.displayName ?? 'Someone';
 
       await _recipesCollection.doc(id).update(data);
       _cache.remove(id);

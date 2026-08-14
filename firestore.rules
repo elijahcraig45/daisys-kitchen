@@ -117,6 +117,32 @@ service cloud.firestore {
                d.imageUrl.matches('https://.*');
       }
 
+      /* The re-hosted image, written only by cacheRecipeImage through the Admin SDK,
+         which these rules do not bind. A client able to set cachedImageUrl would be
+         choosing what the app renders in place of the recipe's own image, and
+         imageUrlIsSafe() does not cover it — so it is refused the same way isAdmin and
+         aiEnabled are on a user document. */
+      /* No email addresses on a recipe. These documents are world-readable when public,
+         which is why createdByEmail was removed from the schema — but the update path
+         went on writing updatedByEmail, and did so on three live public recipes. */
+      function noEmailFields() {
+        let d = request.resource.data;
+        return !('createdByEmail' in d) && !('updatedByEmail' in d);
+      }
+
+      function cacheFieldsAbsent() {
+        let d = request.resource.data;
+        return !('cachedImageUrl' in d) && !('imageCachedAt' in d) &&
+               !('imageSourceUrl' in d);
+      }
+
+      function cacheFieldsUnchanged() {
+        let d = request.resource.data;
+        return d.get('cachedImageUrl', null) == resource.data.get('cachedImageUrl', null) &&
+               d.get('imageCachedAt', null) == resource.data.get('imageCachedAt', null) &&
+               d.get('imageSourceUrl', null) == resource.data.get('imageSourceUrl', null);
+      }
+
       function visibilityIsValid() {
         let d = request.resource.data;
         return d.get('visibility', '') in ['public', 'household', 'private'] &&
@@ -136,13 +162,15 @@ service cloud.firestore {
 
       allow create: if signedIn() &&
                        request.resource.data.createdBy == request.auth.uid &&
-                       withinLimits() && imageUrlIsSafe() && visibilityIsValid();
+                       withinLimits() && imageUrlIsSafe() && visibilityIsValid() &&
+                       cacheFieldsAbsent() && noEmailFields();
 
       // No favourite carve-out any more: favourites are per-user, in
       // users/{uid}/favorites, so nobody needs write access to someone else's recipe.
       // Ownership cannot be handed over either, which is what a forked copy is for.
       allow update: if (owns() || isAdmin()) &&
                        withinLimits() && imageUrlIsSafe() && visibilityIsValid() &&
+                       cacheFieldsUnchanged() && noEmailFields() &&
                        request.resource.data.createdBy == resource.data.createdBy;
 
       allow delete: if owns() || isAdmin();

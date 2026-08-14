@@ -31,6 +31,9 @@ class RecipeMapper {
       'visibility': _visibility(recipe.visibility),
       'householdId': recipe.visibility == 'household' ? recipe.householdId : null,
       'forkedFrom': recipe.forkedFrom,
+      // cachedImageUrl, imageCachedAt and imageSourceUrl are absent for the same reason
+      // as createdBy below: cacheRecipeImage owns them, and the rules refuse a client
+      // write that would change them.
       // createdBy and createdByName are deliberately absent: FirestoreService stamps
       // them on create, and the rules refuse any update that changes createdBy. Writing
       // them from here would let an edit attempt to reassign authorship.
@@ -63,6 +66,7 @@ class RecipeMapper {
     recipe.category = data['category'] as String?;
     recipe.cuisine = data['cuisine'] as String?;
     recipe.imageUrl = data['imageUrl'] as String?;
+    recipe.cachedImageUrl = data['cachedImageUrl'] as String?;
     recipe.notes = data['notes'] as String?;
     recipe.source = data['source'] as String?;
     // Unrecognised or missing visibility reads as private, never public.

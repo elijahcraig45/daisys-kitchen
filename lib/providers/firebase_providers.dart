@@ -5,6 +5,7 @@ import 'package:recipe_keeper/services/firestore_service.dart';
 import 'package:recipe_keeper/services/grocery_service.dart';
 import 'package:recipe_keeper/services/household_service.dart';
 import 'package:recipe_keeper/models/recipe.dart';
+import '../services/image_cache_service.dart';
 
 // Filter state providers for Firestore
 final searchQueryProvider = StateProvider<String>((ref) => '');
@@ -197,3 +198,8 @@ final categoriesProvider = Provider<List<String>>((ref) {
     error: (_, __) => [],
   );
 });
+
+/// Re-hosting of external recipe images. A single instance, because it remembers which
+/// recipes it has already tried and a new one every rebuild would keep re-asking.
+final imageCacheServiceProvider =
+    Provider<ImageCacheService>((ref) => ImageCacheService());

@@ -392,3 +392,104 @@ test('ticking an item off writes history only for your own household', async () 
     setDoc(doc(as('loner'), 'groceryHistory/home/purchases/p10'), { canonicalName: 'orzo' }),
   );
 });
+
+/* ---------------------------------------------------------------------------
+ * The re-hosted image fields
+ *
+ * cacheRecipeImage writes these through the Admin SDK, which bypasses rules. A client
+ * that could write them would choose what the app renders in place of the recipe's own
+ * image, and imageUrlIsSafe() does not look at them.
+ * ------------------------------------------------------------------------- */
+
+test('a recipe cannot be created carrying its own cachedImageUrl', async () => {
+  await assertFails(
+    setDoc(doc(as('henry'), 'recipes/forged'), recipeDoc({
+      cachedImageUrl: 'https://evil.example/nasty.jpg',
+    })),
+  );
+});
+
+test('the owner cannot set cachedImageUrl on their own recipe', async () => {
+  await assertFails(
+    updateDoc(doc(as('henry'), 'recipes/priv'), {
+      cachedImageUrl: 'https://evil.example/nasty.jpg',
+    }),
+  );
+});
+
+test('an admin cannot set cachedImageUrl either', async () => {
+  await assertFails(
+    updateDoc(doc(as('boss'), 'recipes/priv'), {
+      cachedImageUrl: 'https://evil.example/nasty.jpg',
+    }),
+  );
+});
+
+test('imageSourceUrl and imageCachedAt are refused the same way', async () => {
+  await assertFails(
+    updateDoc(doc(as('henry'), 'recipes/priv'), { imageSourceUrl: 'https://evil.example/x' }),
+  );
+  await assertFails(
+    updateDoc(doc(as('henry'), 'recipes/priv'), { imageCachedAt: new Date() }),
+  );
+});
+
+test('an ordinary edit still succeeds once the fields exist', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'recipes/cached'), recipeDoc({
+      cachedImageUrl: 'https://firebasestorage.googleapis.com/v0/b/b/o/x?alt=media&token=t',
+      imageSourceUrl: 'https://example.com/x.jpg',
+    }));
+  });
+  // The client sends the whole document back on save, cached fields included, so an
+  // unchanged value has to pass or every edit to a cached recipe would fail.
+  await assertSucceeds(
+    updateDoc(doc(as('henry'), 'recipes/cached'), {
+      title: 'Lemon Orzo, revised',
+      cachedImageUrl: 'https://firebasestorage.googleapis.com/v0/b/b/o/x?alt=media&token=t',
+      imageSourceUrl: 'https://example.com/x.jpg',
+    }),
+  );
+});
+
+test('a cached recipe cannot have its copy swapped while editing', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'recipes/cached2'), recipeDoc({
+      cachedImageUrl: 'https://firebasestorage.googleapis.com/v0/b/b/o/x?alt=media&token=t',
+    }));
+  });
+  await assertFails(
+    updateDoc(doc(as('henry'), 'recipes/cached2'), {
+      title: 'Lemon Orzo, revised',
+      cachedImageUrl: 'https://evil.example/nasty.jpg',
+    }),
+  );
+});
+
+test('an edit that omits the cached fields entirely is allowed', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'recipes/cached3'), recipeDoc({
+      cachedImageUrl: 'https://firebasestorage.googleapis.com/v0/b/b/o/x?alt=media&token=t',
+      imageSourceUrl: 'https://example.com/x.jpg',
+    }));
+  });
+  // What the app actually sends: RecipeMapper never writes the cached fields, and
+  // updateRecipe uses update() rather than set(), so the post-state keeps them. If this
+  // failed, every edit to a recipe with a cached image would be refused.
+  await assertSucceeds(
+    updateDoc(doc(as('henry'), 'recipes/cached3'), { title: 'Lemon Orzo, revised' }),
+  );
+});
+
+test('a recipe cannot carry an email address, on create or on edit', async () => {
+  await assertFails(
+    setDoc(doc(as('henry'), 'recipes/emailed'),
+      recipeDoc({ updatedByEmail: 'henry@example.com' })),
+  );
+  await assertFails(
+    updateDoc(doc(as('henry'), 'recipes/priv'), { updatedByEmail: 'henry@example.com' }),
+  );
+  await assertFails(
+    updateDoc(doc(as('henry'), 'recipes/priv'), { createdByEmail: 'henry@example.com' }),
+  );
+});
