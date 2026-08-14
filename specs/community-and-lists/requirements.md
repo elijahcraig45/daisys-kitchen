@@ -100,7 +100,70 @@ unauthenticated client is therefore rejected outright once R1.4 lands — it doe
 merely filter. The wall's query must add `visibility == "public"` and must be deployed
 **before** the rules.
 
-### R1.8 Admin is resolved one way
+### R1.8 The Gemini API key is never sent to a browser
+
+- **Given** the deployed web app
+- **When** anyone loads it, signed in or not, and inspects network traffic or app state
+- **Then** no Gemini API key is present.
+
+This is a live defect. `remote_config_service.dart` fetches `gemini_api_key` from Firebase
+Remote Config, and `gemini_service.dart:223` builds
+`…/models/$_model:generateContent?key=$_apiKey` and calls Google directly **from the
+client**. Remote Config values are delivered to every client and the key appears in a
+request URL, so on a public site the key is public — extractable without signing in, and
+usable by anyone, anywhere, against Henry's billing account, with no further connection to
+this app.
+
+Consequences that follow, and which R1.9 depends on: the existing key must be treated as
+compromised and rotated, and any per-user restriction on AI features is unenforceable
+while the key lives in the client — a check running in the attacker's browser, guarding a
+key the attacker already has, is not a control.
+
+### R1.9 AI features are limited to named accounts
+
+- **Given** a signed-in user who is not on the AI allowlist
+- **When** they attempt to use recipe autofill or any other Gemini-backed feature
+- **Then** the request is refused **server-side**
+- **And** the UI does not offer the feature rather than offering it and failing
+- **Given** a user on the allowlist
+- **Then** the feature works normally.
+
+The allowlist starts as two accounts. It must be changeable without a code deploy, and it
+must be enforced where the key lives (R1.8) rather than in the client.
+
+### R1.10 The autofill proxy is not an open proxy
+
+- **Given** the `recipeAutofillProxy` Cloud Function
+- **When** an unauthenticated caller requests any URL
+- **Then** the request is refused
+- **When** an authorised caller requests a private, loopback, link-local or
+  cloud-metadata address, directly or via a redirect
+- **Then** the request is refused
+- **And** a response larger than a fixed cap is truncated or refused.
+
+Also live. The function is `onRequest` with `cors: true` and
+`Access-Control-Allow-Origin: *`, takes an arbitrary `url`, validates only that the
+protocol is http or https, follows redirects, and returns the body — so anyone on the
+internet can make Henry's project fetch any URL on his bill, and use it to reach things
+his function can reach but they cannot.
+
+The obvious escalation — reading the instance metadata service for a service-account
+token — is blocked, but by GCP's own requirement for a `Metadata-Flavor: Google` header
+that this code has no way to send, not by anything in the code. That is luck, and it
+should not be the control.
+
+### R1.11 A public app has basic abuse limits
+
+- **Given** the app is publicly reachable
+- **Then** Firestore and Functions accept requests only from the real app (App Check)
+- **And** a recipe cannot be written with unbounded field sizes or an unbounded number of
+  ingredients or steps
+- **And** a billing alert exists on the project.
+
+Community features mean strangers can write to the database. Nothing today caps document
+size, so a single write could be a megabyte of text repeated as often as someone likes.
+
+### R1.12 Admin is resolved one way
 
 - **Given** the rules and the app
 - **When** either decides whether a user is an admin
@@ -158,7 +221,20 @@ reach me; the fork happens the moment I need it to be mine.
 - **And** a member can leave
 - **And** an expired or unknown code is refused with a clear message.
 
-### R2.6 Household membership is exclusive
+### R2.6 Anything public can be reported and taken down
+
+- **Given** a public recipe
+- **When** any signed-in user reports it
+- **Then** the report is recorded with the reporter, the recipe and a reason
+- **And** an admin can see reports and unpublish or delete the recipe
+- **And** the reporter's identity is not visible to the author.
+
+This is the minimum that makes a public library shippable rather than a full moderation
+system. It is deliberately small: a report path and an admin action, no queues, no
+automated classification, no appeals. Without it there is no way to remove something
+except by editing the database by hand.
+
+### R2.7 Household membership is exclusive
 
 - **Given** I am in a household
 - **When** I join another
@@ -277,9 +353,9 @@ is worse than one that waits.
 ## Out of scope
 
 - Multiple households per user (R2.6).
-- Moderation, reporting and takedown. **This is a genuine gap**: a public library
-  invites spam and abuse, and nothing here addresses it. It should be decided before the
-  community view is meaningfully public, not after.
+- A moderation *system*. R2.6 gives a report path and an admin takedown, which is the
+  floor for shipping a public library. Not in scope: review queues, automated
+  classification, appeals, rate-limited reporting, or banning a user.
 - Converting between volume and weight (R3.5).
 - Real-time collaborative editing of a recipe.
 - Any store's authenticated pricing API. Kroger's is documented and would give true

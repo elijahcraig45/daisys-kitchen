@@ -9,9 +9,47 @@ code is written.
 
 ---
 
+## Phase 0 — hosting safety
+
+These are live exposures, not new-feature work, and community access makes each of them
+worse. They come first.
+
+### T0.1 Rotate the Gemini API key — R1.8
+**Henry, in the console, before anything else.** The current key has been served to every
+visitor of a public site via Remote Config and must be treated as compromised. Rotate it,
+and keep the new value out of Remote Config — T0.2 puts it in Secret Manager.
+
+### T0.2 Move Gemini server-side and gate it — R1.8, R1.9
+`functions/index.js`: callable `geminiProxy`, key from Secret Manager via `defineSecret`,
+allowlist checked against `users/{uid}.aiEnabled` read server-side, seeded from addresses
+in function config. `lib/services/gemini_service.dart` calls the function rather than
+`generativelanguage.googleapis.com`. `isEnabled` becomes "am I allowed", from the user's
+own profile, so the UI hides the feature instead of offering it and failing. Delete
+`gemini_api_key` from Remote Config once deployed; leave `gemini_model` and
+`gemini_enabled`.
+Verify: signed out → refused; signed in and not allowlisted → refused *by the function*,
+not just hidden in the UI; allowlisted → autofill works end to end.
+
+### T0.3 Close the autofill proxy — R1.10
+`functions/index.js`. Require auth, gate on the same allowlist, add the SSRF guard
+(resolve host; reject loopback, RFC1918, link-local including 169.254.169.254, IPv6
+unique-local and `.internal`; `redirect: 'manual'` with a re-check per hop), cap the body
+at 2 MB, and narrow CORS to the app's origin.
+`wallCalendar/app/browser_service.py::_assert_public()` is the reference implementation.
+Verify: unauthenticated → refused; `http://169.254.169.254/…` → refused; a public URL that
+redirects to `127.0.0.1` → refused at the hop, not followed.
+
+### T0.4 General limits — R1.11
+Size caps in `firestore.rules` on recipe writes (title, description, notes, ingredient and
+step counts) and an `https:`-only check on `imageUrl`. Enable App Check for Firestore and
+Functions — ship the client attestation first and turn on **enforcement** second, or the
+app locks itself out. Set a budget alert on the billing account.
+
+---
+
 ## Phase 1 — accounts, visibility, and the email fix
 
-### T1.1 Reconcile the two admin mechanisms — R1.8
+### T1.1 Reconcile the two admin mechanisms — R1.12
 `lib/services/auth_service.dart`. `isAdmin` compares the email against
 `AdminConfig.adminEmails`; rules read `users/{uid}.isAdmin`. Make the app read the
 Firestore field. Keep `AdminConfig` as the seed that `_updateUserProfile` writes, so
@@ -110,12 +148,18 @@ Intercept edit-intent on a recipe the user does not own: copy it, stamp `forkedF
 `createdBy`, replace the saved reference with the copy, and tell the user plainly that
 they now have their own version.
 
-### T2.5 Household create, invite, join, leave — R2.5, R2.6
+### T2.5 Household create, invite, join, leave — R2.5, R2.7
 `functions/index.js`: callable `joinHousehold` and `leaveHousehold`, validating the code
 with admin privileges — see `design.md` for why this is not a rule. Client screens for
 create, show code, enter code, leave. Joining while already in a household prompts to
 leave first. Expired or unknown codes get a clear message.
 Deploy: `firebase deploy --only functions`.
+
+### T2.6 Report and take down — R2.6
+A report action on any public recipe writing to `reports/{reportId}`
+(`recipeId`, `reportedBy`, `reason`, `createdAt`), readable only by admins. An admin view
+listing open reports with unpublish and delete. The reporter is never shown to the author.
+Deliberately minimal: a path to remove something, not a moderation system.
 
 ---
 

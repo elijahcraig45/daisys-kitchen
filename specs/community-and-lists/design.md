@@ -39,6 +39,9 @@ groceryLists/{listId}/items/{itemId}
 
 groceryHistory/{householdId}/purchases/{purchaseId}
   canonicalName, doneAt, quantity, unit
+
+reports/{reportId}
+  recipeId, reportedBy, reason, createdAt, resolvedAt, resolvedBy
 ```
 
 `memberUids` is an array so rules can authorise with
@@ -83,7 +86,7 @@ returning `[{document, readTime}, …]`), which is what the wall's change depend
 
 Replaces the current file. `isAdmin()` keeps reading `users/{uid}.isAdmin`, and
 `auth_service.dart` is changed to read the same field rather than comparing emails
-(R1.8).
+(R1.12).
 
 ```
 rules_version = '2';
@@ -193,6 +196,15 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // A reporter may file one and never read the pile; only admins read reports, so
+    // an author cannot see who reported them (R2.6).
+    match /reports/{reportId} {
+      allow create: if durableAccount() &&
+                       request.resource.data.reportedBy == request.auth.uid;
+      allow read, update: if isAdmin();
+      allow delete: if false;
+    }
+
     match /groceryLists/{listId} {
       function memberOfList() {
         return signedIn() && sharesHousehold(resource.data.householdId);
@@ -221,6 +233,89 @@ Rules `get()` calls are billed and count against a per-request limit (10 for a s
 document read). `sharesHousehold()` costs one `get()`; the grocery item rule costs two.
 That is within budget but is the reason `memberUids` is an array rather than a
 subcollection.
+
+## Hosting safety (R1.8–R1.11)
+
+Three pre-existing exposures, all of which get worse the moment strangers can use the
+app. None were introduced by this work.
+
+### The Gemini key must move server-side (R1.8, R1.9)
+
+Today `remote_config_service.dart` fetches `gemini_api_key` and `gemini_service.dart:223`
+calls Google **from the browser**:
+
+```dart
+final url = '$_baseUrl/models/$_model:generateContent?key=$_apiKey';
+```
+
+Remote Config is delivered to every client, and the key then appears in a request URL. On
+a public site that key is public. It needs no sign-in to obtain and works from anywhere
+once obtained.
+
+This also settles *how* AI can be restricted to named accounts: it cannot be done in the
+client. A client-side allowlist is a check running on the attacker's machine, guarding a
+key the attacker already holds.
+
+Design:
+
+1. **Rotate the existing key.** It has been served to every visitor of a public site and
+   must be treated as compromised. This is a console action for Henry, and it should
+   happen before the rest of this phase rather than after.
+2. New callable function `geminiProxy` (`functions/index.js`, us-central1). It holds the
+   key in **Secret Manager** via `defineSecret`, never in Remote Config, and never returns
+   it. `onCall` gives an authenticated context for free.
+3. It checks the caller against an allowlist and refuses otherwise. Source of truth is
+   `users/{uid}.aiEnabled`, a boolean the function reads server-side, seeded from a list
+   of addresses in function config so it is changeable without a code deploy (R1.9).
+4. `gemini_service.dart` calls the function instead of Google. `isEnabled` becomes "am I
+   allowed", read from the user's own profile document, so the UI can hide the feature
+   rather than offer it and fail.
+5. Remove `gemini_api_key` from Remote Config. `gemini_model` and `gemini_enabled` may
+   stay — a model name is not a secret and a kill switch is useful.
+
+The allowlist starts as Henry's account and one other. The exact addresses go in
+`functions/.env` / Secret Manager rather than this document.
+
+### The autofill proxy needs closing (R1.10)
+
+`recipeAutofillProxy` is `onRequest` with `cors: true` and
+`Access-Control-Allow-Origin: *`, accepts any `url`, checks only the protocol, follows
+redirects, and returns the body. Anyone on the internet can make this project fetch
+anything, on Henry's bill, from Google's network.
+
+The metadata-service escalation — fetching
+`169.254.169.254/computeMetadata/v1/…/token` for a service-account credential — fails
+only because GCP requires a `Metadata-Flavor: Google` header that this code never sends.
+That is a happy accident, not a control, and it should not be relied on.
+
+Design:
+
+- Require authentication. Convert to `onCall`, or verify a Firebase ID token in the
+  handler; either way, unauthenticated callers are refused.
+- Gate on the same AI allowlist — autofill is an AI feature and the same two accounts use
+  it.
+- **SSRF guard**: resolve the hostname, reject loopback, private (RFC1918), link-local
+  (169.254/16, including the metadata address), unique-local IPv6 and `.internal`; use
+  `redirect: 'manual'` and re-run the check on every hop rather than trusting the first.
+  `wallCalendar/app/browser_service.py::_assert_public()` already implements exactly this
+  and is the reference.
+- Cap the response body (say 2 MB) and keep the existing timeout.
+- Replace `Access-Control-Allow-Origin: *` with the app's origin. Not a security control
+  for non-browser callers, but it stops casual use from other sites.
+
+### General limits (R1.11)
+
+- **Firebase App Check** on Firestore and Functions, so requests must come from the real
+  app rather than a script with the project id. This is the single highest-leverage
+  safeguard for a public Firebase app; enforcement should be enabled only after the
+  client is attesting, or it locks out the app.
+- **Size caps in rules** on recipe writes: bound `title`, `description`, `notes`, and the
+  number of `ingredients` and `steps`. Nothing caps them today, so one write can be a
+  megabyte, repeatedly. Cheap to express as `request.resource.data.title.size() < 200`.
+- **Budget alert** on the billing account. Blaze is pay-as-you-go and every item above is
+  ultimately a spending risk.
+- Validate `imageUrl` is `https:` on write; the app renders it, so a `javascript:` or
+  `data:` value has no business being stored.
 
 ## Household join — a Cloud Function, not a rule
 
