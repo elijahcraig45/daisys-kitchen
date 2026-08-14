@@ -493,6 +493,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               return;
             }
             ref.read(recipeScopeProvider.notifier).state = next;
+            // Favourites is a hidden toggle in the overflow menu, and it survives a scope
+            // change — which reads as an empty library rather than an active filter.
+            ref.read(showFavoritesOnlyProvider.notifier).state = false;
           },
         ),
       ),
