@@ -7,26 +7,20 @@ import 'package:http/http.dart' as http;
 import 'package:recipe_keeper/models/ingredient.dart';
 import 'package:recipe_keeper/models/recipe_step.dart';
 import 'package:recipe_keeper/services/gemini_service.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:recipe_keeper/services/logger_service.dart';
 
 /// Fetches recipe data from URLs using AI-powered extraction (Gemini)
 /// Falls back to HTML parsing for Tasty Recipes compatible print pages
 class RecipeAutofillService {
   final GeminiService _geminiService = GeminiService();
-  static const String _defaultWebProxyUrl = String.fromEnvironment(
-    'RECIPE_AUTOFILL_PROXY_URL',
-    defaultValue:
-        'https://us-central1-recipe-f644f.cloudfunctions.net/recipeAutofillProxy',
-  );
 
-  RecipeAutofillService({http.Client? client, String? webProxyUrl})
-      : _client = client ?? http.Client(),
-        _webProxyUrl = (webProxyUrl ?? _defaultWebProxyUrl).trim().isEmpty
-            ? null
-            : (webProxyUrl ?? _defaultWebProxyUrl);
+  // No proxy URL any more: a callable function is addressed by name and region, not
+  // by URL, so the RECIPE_AUTOFILL_PROXY_URL dart-define no longer applies.
+  RecipeAutofillService({http.Client? client})
+      : _client = client ?? http.Client();
 
   final http.Client _client;
-  final String? _webProxyUrl;
 
   void dispose() {
     _client.close();
@@ -68,14 +62,8 @@ class RecipeAutofillService {
 
     // Fallback to HTML parsing
     LoggerService.info('Using HTML parsing to extract recipe', 'RecipeAutofill');
-    final requestUri = _buildRequestUri(uri);
-    final response = await _client.get(requestUri);
-    if (response.statusCode != 200) {
-      throw RecipeAutofillException(
-          'Unable to load recipe. (${response.statusCode})');
-    }
-
-    final document = html_parser.parse(response.body);
+    final html = await _fetchHtml(uri);
+    final document = html_parser.parse(html);
     final root = document.querySelector('.tasty-recipes') ?? document.body;
     if (root == null) {
       throw RecipeAutofillException(
@@ -136,23 +124,40 @@ class RecipeAutofillService {
     );
   }
 
-  Uri _buildRequestUri(Uri original) {
+  /// Fetches the page HTML.
+  ///
+  /// On the web this goes through the `recipeAutofillProxy` callable function, both to
+  /// dodge CORS and because the function is where the URL is vetted. It used to be a
+  /// plain GET against an unauthenticated HTTP function, which made it an open proxy
+  /// anyone could point at any address; a callable carries the caller's identity and
+  /// the function refuses anything internal.
+  Future<String> _fetchHtml(Uri original) async {
     if (!kIsWeb) {
-      return original;
+      final response = await _client.get(original);
+      if (response.statusCode != 200) {
+        throw RecipeAutofillException(
+            'Unable to load recipe. (${response.statusCode})');
+      }
+      return response.body;
     }
-    final proxyUrl = _webProxyUrl;
-    if (proxyUrl == null) {
+
+    try {
+      final callable = FirebaseFunctions.instanceFor(region: 'us-central1')
+          .httpsCallable('recipeAutofillProxy');
+      final result = await callable.call<Map<String, dynamic>>({
+        'url': original.toString(),
+      });
+      return (result.data['body'] as String?) ?? '';
+    } on FirebaseFunctionsException catch (e) {
+      if (e.code == 'permission-denied' || e.code == 'unauthenticated') {
+        throw RecipeAutofillException(
+          'Importing from a link is limited to specific accounts on this instance.',
+        );
+      }
       throw RecipeAutofillException(
-        'Autofill from the browser requires the RECIPE_AUTOFILL_PROXY_URL to be configured.',
+        e.message ?? 'Unable to load that page.',
       );
     }
-    final proxy = Uri.tryParse(proxyUrl);
-    if (proxy == null) {
-      throw RecipeAutofillException('Invalid proxy URL configured.');
-    }
-    final params = Map<String, String>.from(proxy.queryParameters);
-    params['url'] = original.toString();
-    return proxy.replace(queryParameters: params);
   }
 
   List<Ingredient> _parseFallbackIngredients(

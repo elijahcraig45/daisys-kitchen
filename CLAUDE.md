@@ -11,6 +11,7 @@ The parent workspace `CLAUDE.md` (`~/Documents/personalDev/`) is also loaded; th
 dart run build_runner build --delete-conflicting-outputs   # REQUIRED before first build — *.g.dart is gitignored
 flutter run -d chrome
 flutter test                                               # 20 tests: RecipeMapper + Validators
+cd test/rules && npm test                                  # 13 security-rules tests (needs java)
 flutter analyze                                            # ~7 issues, all pre-existing infos
 flutter build web --release
 firebase deploy --only hosting                             # see build-dir gotcha below
@@ -60,16 +61,24 @@ Serif 4 instanced to wght 600 / opsz 20 and subset to Latin, 55KB, SIL OFL 1.1 �
 Only weight 600 ships, so avoid asking the serif styles for other weights.
 
 **Autofill chain** (`recipe_autofill_service.dart`): Gemini first; on failure falls back to HTML parsing that only
-recognizes `.tasty-recipes` print layouts. The HTML fetch goes through the `recipeAutofillProxy` Cloud Function
-(`functions/index.js`, us-central1) to dodge browser CORS. Override with
-`--dart-define=RECIPE_AUTOFILL_PROXY_URL=...`.
+recognizes `.tasty-recipes` print layouts. The HTML fetch goes through the `recipeAutofillProxy` **callable**
+function (`functions/index.js`, us-central1) — for CORS, and because that function is where the URL is vetted.
+It is addressed by name and region, so there is no URL to override; the old
+`--dart-define=RECIPE_AUTOFILL_PROXY_URL` no longer exists.
 
 ## Configuration
 
 - `lib/services/firebase_service.dart` and `admin_config.dart` are gitignored — copy from the `.template.dart`
   siblings locally; CI injects them from secrets.
-- **Gemini keys come from Firebase Remote Config**, not a file: `gemini_api_key`, `gemini_model`,
-  `gemini_enabled` (see `remote_config_service.dart`). `gemini_config.dart` is gitignored and imported by nothing.
+- **The Gemini key is in Secret Manager and never reaches the client.** Set it with
+  `firebase functions:secrets:set GEMINI_API_KEY`. It used to live in Remote Config, which is delivered to every
+  client, so the key was public and had to be rotated. Remote Config still holds `gemini_model` and
+  `gemini_enabled` — a model name is not a secret and a kill switch is useful. `gemini_config.dart` is gitignored
+  and imported by nothing.
+- **AI features are limited to specific accounts.** `geminiProxy` and `recipeAutofillProxy` both check
+  `users/{uid}.aiEnabled`, seeded from a list of verified addresses in `functions/index.js`. Enforced server-side
+  on purpose: a client-side allowlist guarding a key the client holds is not a control. `GeminiService.isAllowed`
+  is only a hint so the UI can hide the feature.
 
 ## Security model (README overstates this)
 
