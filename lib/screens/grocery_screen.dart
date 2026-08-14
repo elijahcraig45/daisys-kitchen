@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../providers/firebase_providers.dart';
 import '../services/grocery_service.dart';
@@ -67,22 +68,13 @@ class _GroceryScreenState extends ConsumerState<GroceryScreen> {
               const Icon(Icons.shopping_basket_outlined, size: 48),
               const SizedBox(height: 16),
               Text(
-                'The list belongs to a household',
+                'The list is shared with a household',
                 style: Theme.of(context).textTheme.titleMedium,
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Set one up and everyone in it shares the same list, so whoever passes the '
-                'shop can pick things up.',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: context.colors.onSurfaceVariant,
-                    ),
-              ),
               const SizedBox(height: 20),
               FilledButton(
-                onPressed: () => Navigator.of(context).pushNamed('/household'),
+                onPressed: () => context.push('/household'),
                 child: const Text('Set up a household'),
               ),
             ],
@@ -137,8 +129,7 @@ class _GroceryScreenState extends ConsumerState<GroceryScreen> {
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Text(
-          'Nothing on the list. Add something above, or open a recipe and send its '
-          'ingredients here.',
+          'Nothing on the list yet.',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: context.colors.onSurfaceVariant,

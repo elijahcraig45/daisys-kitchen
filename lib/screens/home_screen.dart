@@ -83,8 +83,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ref.read(showFavoritesOnlyProvider.notifier).state = false,
               deleteIcon: const Icon(Icons.close, size: 18),
             ),
-          const SizedBox(width: 8),
-          // Auth UI
+          IconButton(
+            icon: const Icon(Icons.shopping_basket_outlined),
+            tooltip: 'Groceries',
+            onPressed: () => context.push('/groceries'),
+          ),
           userAsync.when(
             data: (user) {
               if (user == null) {
@@ -109,7 +112,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 tooltip: displayName,
                 onSelected: (value) async {
-                  if (value == 'signout') {
+                  if (value == 'household') {
+                    context.push('/household');
+                  } else if (value == 'signout') {
                     await authService.signOut();
                     if (mounted) {
                       SnackBarHelper.showInfo(context, 'Signed out.');
@@ -138,6 +143,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                   ),
                   const PopupMenuDivider(),
+                  PopupMenuItem(
+                    value: 'household',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.group_outlined),
+                        const SizedBox(width: 8),
+                        Text(ref.watch(myHouseholdProvider).valueOrNull == null
+                            ? 'Set up a household'
+                            : 'Household'),
+                      ],
+                    ),
+                  ),
                   const PopupMenuItem(
                     value: 'signout',
                     child: Row(
@@ -202,6 +219,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           const SizedBox(width: 8),
         ],
       ),
+      // Below the sidebar's breakpoint the same content has to be reachable somehow, so
+      // it becomes a drawer. Scaffold supplies the menu button.
+      drawer: isWideScreen
+          ? null
+          : Drawer(
+              child: Builder(
+                // A context beneath this Scaffold, so closeDrawer finds the right one.
+                builder: (drawerContext) => SafeArea(
+                  child: _buildSidebar(
+                    categories,
+                    onNavigate: () => Scaffold.of(drawerContext).closeDrawer(),
+                  ),
+                ),
+              ),
+            ),
       body: Row(
         children: [
           // Sidebar for wide screens
@@ -242,6 +274,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         maxWidth: AppTheme.maxContentWidth - 48),
                     child: Column(
                       children: [
+                        _buildScopeBar(),
+                        const SizedBox(height: 12),
                         // Search bar
                         TextField(
                           controller: _searchController,
@@ -358,68 +392,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildSidebar(List<String> categories) {
+  /// Filters, and the links that belong nowhere else. Inline on a wide screen, a drawer
+  /// below that — [onNavigate] is non-null only in the drawer, where a tap should close it.
+  Widget _buildSidebar(List<String> categories, {VoidCallback? onNavigate}) {
+    final inDrawer = onNavigate != null;
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-          child: Text(
-            'Library',
-            style: Theme.of(context).textTheme.labelMedium,
-          ),
-        ),
-        _buildScopeTile(
-          RecipeScope.mine,
-          Icons.bookmark_outline,
-          'My recipes',
-          'Written by me, plus anything I have saved',
-        ),
-        _buildScopeTile(
-          RecipeScope.household,
-          Icons.home_outlined,
-          'Household',
-          ref.watch(myHouseholdProvider).valueOrNull?.name ??
-              'Shared with the people you cook with',
-        ),
-        _buildScopeTile(
-          RecipeScope.community,
-          Icons.public,
-          'Community',
-          'Published by everyone',
-        ),
-        ListTile(
-          leading: const Icon(Icons.shopping_basket_outlined),
-          title: const Text('Groceries'),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          onTap: () {
-            Navigator.of(context).maybePop();
-            context.push('/groceries');
-          },
-        ),
-        ListTile(
-          leading: const Icon(Icons.group_outlined),
-          title: Text(ref.watch(myHouseholdProvider).valueOrNull == null
-              ? 'Set up a household'
-              : 'Manage household'),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          onTap: () {
-            Navigator.of(context).maybePop();
-            context.push('/household');
-          },
-        ),
-        ListTile(
-          leading: const Icon(Icons.privacy_tip_outlined),
-          title: const Text('Privacy and terms'),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          onTap: () {
-            Navigator.of(context).maybePop();
-            context.push('/privacy');
-          },
-        ),
-        const Divider(),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
           child: Text(
             'Categories',
             style: Theme.of(context).textTheme.labelMedium,
@@ -432,9 +414,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
           ),
-          onTap: () => ref.read(selectedCategoryProvider.notifier).state = null,
+          onTap: () {
+            ref.read(selectedCategoryProvider.notifier).state = null;
+            onNavigate?.call();
+          },
         ),
-        const Divider(),
         ...categories.map((category) {
           return ListTile(
             leading: const Icon(Icons.category),
@@ -443,22 +427,75 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
-            onTap: () =>
-                ref.read(selectedCategoryProvider.notifier).state = category,
+            onTap: () {
+              ref.read(selectedCategoryProvider.notifier).state = category;
+              onNavigate?.call();
+            },
           );
         }),
-        const Divider(),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 20, 12, 12),
-          child: Text(
-            'Difficulty',
-            style: Theme.of(context).textTheme.labelMedium,
+        // The narrow layout already carries difficulty as chips above the grid, so the
+        // drawer would be a second control for the same state.
+        if (!inDrawer) ...[
+          const Divider(),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 20, 12, 12),
+            child: Text(
+              'Difficulty',
+              style: Theme.of(context).textTheme.labelMedium,
+            ),
           ),
+          _buildDifficultyListTile(DifficultyLevel.easy),
+          _buildDifficultyListTile(DifficultyLevel.medium),
+          _buildDifficultyListTile(DifficultyLevel.hard),
+        ],
+        const Divider(),
+        // Here rather than in the account menu: there is no account menu when signed out,
+        // and signed out is now where most people arrive.
+        ListTile(
+          leading: const Icon(Icons.privacy_tip_outlined),
+          title: const Text('Privacy and terms'),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          onTap: () {
+            onNavigate?.call();
+            context.push('/privacy');
+          },
         ),
-        _buildDifficultyListTile(DifficultyLevel.easy),
-        _buildDifficultyListTile(DifficultyLevel.medium),
-        _buildDifficultyListTile(DifficultyLevel.hard),
       ],
+    );
+  }
+
+  /// The library switcher: which recipes are on screen. Navigation rather than a filter,
+  /// so it stays visible at every width instead of living in the drawer.
+  Widget _buildScopeBar() {
+    final scope = ref.watch(recipeScopeProvider);
+    final hasHousehold = ref.watch(myHouseholdProvider).valueOrNull != null;
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: SegmentedButton<RecipeScope>(
+          showSelectedIcon: false,
+          segments: const [
+            ButtonSegment(
+                value: RecipeScope.community, label: Text('Community')),
+            ButtonSegment(value: RecipeScope.mine, label: Text('Mine')),
+            ButtonSegment(
+                value: RecipeScope.household, label: Text('Household')),
+          ],
+          selected: {scope},
+          onSelectionChanged: (selection) {
+            final next = selection.first;
+            // Tapping Household without one goes to where you can make one, rather than
+            // selecting a scope that is empty by construction.
+            if (next == RecipeScope.household && !hasHousehold) {
+              context.push('/household');
+              return;
+            }
+            ref.read(recipeScopeProvider.notifier).state = next;
+          },
+        ),
+      ),
     );
   }
 
@@ -479,36 +516,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       onTap: () {
         final notifier = ref.read(selectedDifficultyProvider.notifier);
         notifier.state = notifier.state == level ? null : level;
-      },
-    );
-  }
-
-  /// One library scope. Household is offered even without a household, and explains
-  /// itself when tapped rather than being greyed out with no reason given.
-  Widget _buildScopeTile(
-    RecipeScope scope,
-    IconData icon,
-    String title,
-    String subtitle,
-  ) {
-    final selected = ref.watch(recipeScopeProvider) == scope;
-    return ListTile(
-      leading: Icon(icon),
-      title: Text(title),
-      subtitle: Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis),
-      selected: selected,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      onTap: () {
-        if (scope == RecipeScope.household &&
-            ref.read(myHouseholdProvider).valueOrNull == null) {
-          SnackBarHelper.showInfo(
-            context,
-            'Join or create a household to share recipes with the people you cook with.',
-          );
-          return;
-        }
-        ref.read(recipeScopeProvider.notifier).state = scope;
-        Navigator.of(context).maybePop();
       },
     );
   }
@@ -575,6 +582,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildEmptyState() {
+    // A hint only where there is something to act on. Empty because you have written
+    // nothing needs a nudge; empty because a search matched nothing does not.
+    final hint = ref.watch(recipeScopeProvider) == RecipeScope.mine &&
+            ref.watch(currentUserProvider).valueOrNull == null
+        ? 'Sign in to add your own.'
+        : null;
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -586,17 +600,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
           const SizedBox(height: 20),
           Text(
-            'No recipes found',
+            'Nothing here',
             style: Theme.of(context).textTheme.headlineSmall,
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Sign in to create a recipe, or import an existing collection.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-            textAlign: TextAlign.center,
-          ),
+          if (hint != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              hint,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ],
       ),
     );
@@ -658,18 +674,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Sign In'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Sign in to add, edit, or manage recipes.'),
-            SizedBox(height: 16),
-            Text(
-              'Public viewing does not require sign-in.',
-              style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
-            ),
-          ],
-        ),
+        title: const Text('Sign in'),
+        content: const Text('To add or edit recipes. Browsing needs no account.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),

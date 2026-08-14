@@ -1644,7 +1644,7 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
       decoration: InputDecoration(
         labelText: 'Who can see this',
         helperText: switch (_visibility) {
-          'public' => 'Anyone can find it in the community library.',
+          'public' => 'Anyone can find it.',
           'household' => 'Shared with ${household?.name ?? 'your household'}.',
           _ => 'Only you.',
         },

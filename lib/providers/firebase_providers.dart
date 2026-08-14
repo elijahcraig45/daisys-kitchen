@@ -65,7 +65,10 @@ final myHouseholdProvider = StreamProvider<Household?>((ref) {
 /// screen, so every surface agrees about what "mine" means.
 enum RecipeScope { mine, household, community }
 
-final recipeScopeProvider = StateProvider<RecipeScope>((ref) => RecipeScope.mine);
+/// Community is the default because it is the only scope guaranteed to have something in
+/// it for an arrival — signed out, or signed in with nothing written yet.
+final recipeScopeProvider =
+    StateProvider<RecipeScope>((ref) => RecipeScope.community);
 
 /// The household grocery list.
 final groceryServiceProvider = Provider<GroceryService>((ref) => GroceryService());

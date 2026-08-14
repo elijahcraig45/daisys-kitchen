@@ -63,16 +63,12 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
             padding: const EdgeInsets.all(24),
             children: [
               if (!signedIn)
-                const _Explainer(
-                  'Sign in to share recipes and a grocery list with the people you '
-                  'cook with.',
-                )
+                _buildSignInPrompt()
               else
                 householdAsync.when(
                   loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (_, __) => const _Explainer(
-                    'Could not load your household. Check your connection and try again.',
-                  ),
+                  error: (_, __) =>
+                      const _Explainer('Could not load your household.'),
                   data: (household) => household == null
                       ? _buildNoHousehold()
                       : _buildHousehold(household),
@@ -84,13 +80,40 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
     );
   }
 
+  Widget _buildSignInPrompt() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _Explainer('Share recipes and one grocery list.'),
+        const SizedBox(height: 16),
+        FilledButton.icon(
+          onPressed: _busy ? null : _signIn,
+          icon: const Icon(Icons.login),
+          label: const Text('Sign in with Google'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _signIn() async {
+    setState(() => _busy = true);
+    try {
+      final result = await ref.read(authServiceProvider).signInWithGoogle();
+      if (!mounted) return;
+      if (result == null) SnackBarHelper.showWarning(context, 'Sign-in was cancelled.');
+    } catch (e) {
+      if (mounted) SnackBarHelper.showError(context, 'Sign-in failed: $e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Widget _buildNoHousehold() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const _Explainer(
-          'A household is the people you cook with. You share recipes marked '
-          '"household" and one grocery list. You can be in one at a time.',
+          'Share recipes and one grocery list. You can be in one at a time.',
         ),
         const SizedBox(height: 24),
         Text('Start one', style: Theme.of(context).textTheme.titleMedium),
@@ -168,10 +191,7 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
         const Divider(height: 32),
         Text('Invite someone', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
-        const _Explainer(
-          'Codes last two weeks. Making a new one replaces the old one, so a code you '
-          'have shared before stops working.',
-        ),
+        const _Explainer('Codes last two weeks. A new one replaces the old.'),
         const SizedBox(height: 12),
         if (_inviteCode != null) ...[
           Card(
