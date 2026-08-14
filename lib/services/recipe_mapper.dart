@@ -23,12 +23,23 @@ class RecipeMapper {
       'imageUrl': recipe.imageUrl,
       'notes': recipe.notes,
       'source': recipe.source,
-      'isFavorite': recipe.isFavorite,
       'tags': recipe.tags ?? <String>[],
       'ingredients': recipe.ingredients.map(_ingredientToMap).toList(),
       'steps': recipe.steps.map(_stepToMap).toList(),
+      // isFavorite is deliberately absent: favourites are per-user and live in
+      // users/{uid}/favorites, so writing one here would set it for everybody.
+      'visibility': _visibility(recipe.visibility),
+      'householdId': recipe.visibility == 'household' ? recipe.householdId : null,
+      'forkedFrom': recipe.forkedFrom,
     };
   }
+
+  static const Set<String> _visibilities = {'public', 'household', 'private'};
+
+  /// Falls back to `private`, which is the safe direction: a value we cannot read
+  /// should hide a recipe rather than publish it.
+  static String _visibility(Object? raw) =>
+      raw is String && _visibilities.contains(raw) ? raw : 'private';
 
   static Recipe fromFirestore(String id, Map<String, dynamic> data) {
     final recipe = Recipe(
@@ -51,7 +62,10 @@ class RecipeMapper {
     recipe.imageUrl = data['imageUrl'] as String?;
     recipe.notes = data['notes'] as String?;
     recipe.source = data['source'] as String?;
-    recipe.isFavorite = data['isFavorite'] as bool? ?? false;
+    // Unrecognised or missing visibility reads as private, never public.
+    recipe.visibility = _visibility(data['visibility']);
+    recipe.householdId = data['householdId'] as String?;
+    recipe.forkedFrom = data['forkedFrom'] as String?;
     recipe.createdAt = _dateTime(data['createdAt']) ?? recipe.createdAt;
     recipe.updatedAt = _dateTime(data['updatedAt']) ?? recipe.updatedAt;
 

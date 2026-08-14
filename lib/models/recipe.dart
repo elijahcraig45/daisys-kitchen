@@ -51,8 +51,27 @@ class Recipe {
   @JsonKey(includeFromJson: false, includeToJson: false)
   late DateTime updatedAt;
 
+  /// Per-user, and therefore NOT stored on the recipe document — it lives in
+  /// users/{uid}/favorites. Kept on the model because the UI binds to it, filled in
+  /// from the viewer's own favourites when a recipe is loaded.
   @JsonKey(includeFromJson: true, includeToJson: true)
   bool isFavorite = false;
+
+  /// Who may see this: `public`, `household` or `private`.
+  ///
+  /// Anything unrecognised is treated as private. An unreadable value should hide a
+  /// recipe rather than publish one.
+  @JsonKey(includeFromJson: true, includeToJson: true)
+  String visibility = 'private';
+
+  /// Set only when [visibility] is `household`.
+  @JsonKey(includeFromJson: true, includeToJson: true)
+  String? householdId;
+
+  /// The recipe this was copied from, when someone edited a community recipe they did
+  /// not own.
+  @JsonKey(includeFromJson: true, includeToJson: true)
+  String? forkedFrom;
 
   Recipe({
     this.title = '',

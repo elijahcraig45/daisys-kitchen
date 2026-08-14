@@ -125,4 +125,66 @@ void main() {
       expect(restored.tags, ['ok']);
     });
   });
+
+  group('RecipeMapper visibility', () {
+    test('an unrecognised visibility reads as private, not public', () {
+      final recipe = RecipeMapper.fromFirestore('id', {
+        'title': 'X',
+        'visibility': 'everyone',
+      });
+      expect(recipe.visibility, 'private');
+    });
+
+    test('a missing visibility reads as private', () {
+      final recipe = RecipeMapper.fromFirestore('id', {'title': 'X'});
+      expect(recipe.visibility, 'private');
+    });
+
+    test('each real visibility round-trips', () {
+      for (final value in ['public', 'household', 'private']) {
+        final recipe = RecipeMapper.fromFirestore('id', {
+          'title': 'X',
+          'visibility': value,
+        });
+        expect(recipe.visibility, value);
+        expect(RecipeMapper.toFirestore(recipe)['visibility'], value);
+      }
+    });
+
+    test('householdId is only written for household visibility', () {
+      final recipe = _sampleRecipe()
+        ..visibility = 'public'
+        ..householdId = 'h1';
+      expect(RecipeMapper.toFirestore(recipe)['householdId'], isNull);
+
+      recipe.visibility = 'household';
+      expect(RecipeMapper.toFirestore(recipe)['householdId'], 'h1');
+    });
+
+    test('forkedFrom round-trips', () {
+      final recipe = RecipeMapper.fromFirestore('id', {
+        'title': 'X',
+        'forkedFrom': 'original-id',
+      });
+      expect(recipe.forkedFrom, 'original-id');
+      expect(RecipeMapper.toFirestore(recipe)['forkedFrom'], 'original-id');
+    });
+  });
+
+  group('RecipeMapper favourites are per-user', () {
+    test('isFavorite is not part of the Firestore shape', () {
+      // Favourites live in users/{uid}/favorites. Writing one onto the recipe would
+      // set it for everybody, which is exactly what the old shared flag did.
+      final recipe = _sampleRecipe()..isFavorite = true;
+      expect(RecipeMapper.toFirestore(recipe).containsKey('isFavorite'), isFalse);
+    });
+
+    test('a legacy isFavorite on the document is ignored', () {
+      final recipe = RecipeMapper.fromFirestore('id', {
+        'title': 'X',
+        'isFavorite': true,
+      });
+      expect(recipe.isFavorite, isFalse);
+    });
+  });
 }

@@ -52,7 +52,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final categories = ref.watch(categoriesProvider);
     final authService = ref.watch(authServiceProvider);
     final userAsync = ref.watch(currentUserProvider);
-    final isAdmin = ref.watch(isAdminProvider);
+    final isAdmin = ref.watch(isAdminProvider).valueOrNull ?? false;
     final selectedDifficulty = ref.watch(selectedDifficultyProvider);
     final showFavoritesOnly = ref.watch(showFavoritesOnlyProvider);
     final screenWidth = MediaQuery.of(context).size.width;

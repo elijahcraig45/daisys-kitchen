@@ -25,15 +25,13 @@ final currentUserProvider = StreamProvider<User?>((ref) {
 });
 
 /// Is admin provider (reactive)
-final isAdminProvider = Provider<bool>((ref) {
-  final userAsync = ref.watch(currentUserProvider);
-  final authService = ref.watch(authServiceProvider);
-
-  return userAsync.when(
-    data: (user) => user != null && authService.isAdmin,
-    loading: () => false,
-    error: (_, __) => false,
-  );
+///
+/// Async because admin is a Firestore field rather than an email comparison — the same
+/// field firestore.rules reads, so the app and the rules cannot disagree.
+final isAdminProvider = FutureProvider<bool>((ref) async {
+  final user = await ref.watch(currentUserProvider.future);
+  if (user == null) return false;
+  return ref.watch(authServiceProvider).isAdmin;
 });
 
 /// Is signed in provider (reactive)
@@ -53,9 +51,18 @@ final recipesStreamProvider = StreamProvider<List<Recipe>>((ref) {
   return firestoreService.getRecipesStream();
 });
 
+/// The signed-in user's favourite recipe ids.
+///
+/// Favourites moved off the recipe document — an `isFavorite` field there was shared
+/// state, so one person favouriting something marked it for everyone.
+final favoriteIdsProvider = StreamProvider<Set<String>>((ref) {
+  return ref.watch(firestoreServiceProvider).watchFavoriteIds();
+});
+
 /// Filtered recipes provider for Firestore
 final firestoreFilteredRecipesProvider = Provider<List<Recipe>>((ref) {
   final recipesAsync = ref.watch(recipesStreamProvider);
+  final favoriteIds = ref.watch(favoriteIdsProvider).valueOrNull ?? const <String>{};
   final searchQuery = ref.watch(searchQueryProvider);
   final selectedCategory = ref.watch(selectedCategoryProvider);
   final selectedDifficulty = ref.watch(selectedDifficultyProvider);
@@ -63,6 +70,12 @@ final firestoreFilteredRecipesProvider = Provider<List<Recipe>>((ref) {
 
   return recipesAsync.when(
     data: (recipes) {
+      // Stamped from the viewer's own favourites, since the document no longer carries
+      // it. Done here so every screen reading this provider sees the same answer.
+      for (final recipe in recipes) {
+        recipe.isFavorite =
+            recipe.firestoreId != null && favoriteIds.contains(recipe.firestoreId);
+      }
       var filtered = recipes;
 
       // Search filter — matches what the search field advertises: name,

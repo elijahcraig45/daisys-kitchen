@@ -11,8 +11,11 @@ class AuthService {
   final GoogleSignIn? _googleSignIn = kIsWeb ? null : GoogleSignIn();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Admin user IDs - loaded from admin_config.dart (gitignored)
-  static final Set<String> _adminEmails = AdminConfig.adminEmails;
+  // Who should be an admin. Not a check — the check reads Firestore, because that is
+  // what firestore.rules reads, and two mechanisms disagreeing about who is an admin is
+  // worse than either one being wrong. The field is set in Firestore directly: a client
+  // that could write it could promote itself (see R1.12).
+  static final Set<String> intendedAdminEmails = AdminConfig.adminEmails;
 
   /// Get current user
   User? get currentUser => _auth.currentUser;
@@ -20,11 +23,17 @@ class AuthService {
   /// Stream of auth state changes
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  /// Check if current user is admin
-  bool get isAdmin {
+  /// Whether the signed-in user is an admin, from the same field the rules use.
+  Future<bool> get isAdmin async {
     final user = currentUser;
     if (user == null) return false;
-    return _adminEmails.contains(user.email);
+    try {
+      final snap = await _firestore.collection('users').doc(user.uid).get();
+      return snap.data()?['isAdmin'] == true;
+    } catch (e) {
+      LoggerService.warning('Could not read admin status', 'Auth');
+      return false;
+    }
   }
 
   /// Check if current user is signed in

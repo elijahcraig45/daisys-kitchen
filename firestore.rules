@@ -1,56 +1,104 @@
 rules_version = '2';
 
+// Daisy's Kitchen security rules.
+//
+// Verified by test/rules (`cd test/rules && npm test`). That harness is the only real
+// check available: the Firestore emulator started with `--only firestore` does not
+// compile this file at all, so a call to an undefined function will start up happily.
+//
+// Rule of thumb throughout: fail towards hiding things. An unrecognised visibility is
+// private, not public, and a missing household is nobody's household rather than
+// everybody's.
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper function to check if user is admin
-    function isAdmin() {
-      return request.auth != null && 
-             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+
+    function signedIn() {
+      return request.auth != null;
     }
-    
-    // Users collection - users can read/write their own profile
+
+    // An anonymous account is disposable, so it may not publish into a shared library
+    // or spend money on AI. Sign-in provider comes from the token, not from a document.
+    function durableAccount() {
+      return signedIn() &&
+             request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
+    function userDoc(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data;
+    }
+
+    function isAdmin() {
+      return signedIn() &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             userDoc(request.auth.uid).get('isAdmin', false) == true;
+    }
+
+    function myHouseholdId() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid))
+             ? userDoc(request.auth.uid).get('householdId', null)
+             : null;
+    }
+
+    // Both sides must be a real household. Without the null check, two users who belong
+    // to no household would "share" one and could read each other's private things.
+    function sharesHousehold(otherHouseholdId) {
+      return signedIn() &&
+             otherHouseholdId != null &&
+             myHouseholdId() == otherHouseholdId;
+    }
+
     match /users/{userId} {
-      allow read: if true; // Public can view user profiles
+      // Not world-readable. It used to be, and these documents hold an email address,
+      // so every signed-in user's address was public.
+      allow read: if signedIn() &&
+                     (request.auth.uid == userId ||
+                      sharesHousehold(resource.data.get('householdId', null)) ||
+                      isAdmin());
 
-      // These decide what someone is allowed to do, so the client must never write
-      // them. `allow write` on the whole document meant a signed-in user could set
-      // isAdmin on themselves — and isAdmin() above reads exactly that field, which
-      // permits editing and deleting every recipe in the database. aiEnabled is the
-      // same shape: it gates paid AI calls, so client control of it defeats the
-      // server-side check in geminiProxy.
-      // Both are written by trusted code only. The functions use the Admin SDK, which
-      // bypasses these rules; isAdmin is set in Firestore directly. The client used to
-      // write isAdmin on every sign-in from AdminConfig.adminEmails and no longer does,
-      // because a client that can write this field can promote itself.
-      function claimsUnchanged() {
-        return !request.resource.data.diff(resource.data)
-                  .affectedKeys().hasAny(['isAdmin', 'aiEnabled']);
-      }
-
-      // Create is where the first sign-in writes the profile, so it needs the same
-      // guard: without it a new account could simply create itself as an admin.
+      // isAdmin decides who may edit and delete every recipe, aiEnabled gates paid AI
+      // calls, and householdId decides what a person can see. A client that can write
+      // any of them can grant itself the corresponding power, so none may be set from
+      // here — the functions use the Admin SDK, which bypasses these rules, and isAdmin
+      // is set in Firestore directly.
       function claimsNotAsserted() {
         return request.resource.data.get('isAdmin', false) == false &&
-               request.resource.data.get('aiEnabled', false) == false;
+               request.resource.data.get('aiEnabled', false) == false &&
+               request.resource.data.get('householdId', null) == null;
       }
 
-      allow create: if request.auth != null && request.auth.uid == userId &&
-                       claimsNotAsserted();
-      allow update: if request.auth != null && request.auth.uid == userId &&
-                       claimsUnchanged();
+      function claimsUnchanged() {
+        return !request.resource.data.diff(resource.data)
+                  .affectedKeys().hasAny(['isAdmin', 'aiEnabled', 'householdId']);
+      }
+
+      allow create: if signedIn() && request.auth.uid == userId && claimsNotAsserted();
+      allow update: if signedIn() && request.auth.uid == userId && claimsUnchanged();
+      // Deleting and recreating would be another way to rewrite a claim.
       allow delete: if false;
+
+      match /favorites/{recipeId} {
+        allow read, write: if signedIn() && request.auth.uid == userId;
+      }
+      match /savedRecipes/{recipeId} {
+        allow read, write: if signedIn() && request.auth.uid == userId;
+      }
+      match /staples/{stapleId} {
+        allow read, write: if signedIn() && request.auth.uid == userId;
+      }
     }
-    
-    // Recipes collection - public read, signed-in users can write
+
     match /recipes/{recipeId} {
-      // Anyone can read recipes (public viewing)
-      allow read: if true;
+      function owns() {
+        return signedIn() && resource.data.get('createdBy', '') == request.auth.uid;
+      }
+
+      function visibility() {
+        return resource.data.get('visibility', 'private');
+      }
 
       // Nothing bounded document size before this, so a single write could be a
-      // megabyte of text, as often as someone cared to send it. Limits are generous
-      // enough that no real recipe hits them.
+      // megabyte of text, as often as someone cared to send it.
       function withinLimits() {
         let d = request.resource.data;
         return d.title is string && d.title.size() > 0 && d.title.size() <= 200 &&
@@ -61,70 +109,119 @@ service cloud.firestore {
                (!('tags' in d) || d.tags.size() <= 30);
       }
 
-      // The app renders this straight into an image element, so a javascript: or
-      // data: value has no business being stored.
+      // The app renders this into an image element, so a javascript: or data: value has
+      // no business being stored.
       function imageUrlIsSafe() {
         let d = request.resource.data;
         return !('imageUrl' in d) || d.imageUrl == null || d.imageUrl == '' ||
                d.imageUrl.matches('https://.*');
       }
 
-      // Signed-in users can create recipes (must set createdBy to their UID)
-      allow create: if request.auth != null &&
+      function visibilityIsValid() {
+        let d = request.resource.data;
+        return d.get('visibility', '') in ['public', 'household', 'private'] &&
+               // A household recipe must name the author's own household, or it would be
+               // shared into someone else's.
+               (d.get('visibility', '') != 'household' ||
+                d.get('householdId', null) == myHouseholdId()) &&
+               // Publishing is not for throwaway accounts.
+               (d.get('visibility', '') != 'public' || durableAccount());
+      }
+
+      allow read: if visibility() == 'public' ||
+                     owns() ||
+                     (visibility() == 'household' &&
+                      sharesHousehold(resource.data.get('householdId', null))) ||
+                     isAdmin();
+
+      allow create: if signedIn() &&
                        request.resource.data.createdBy == request.auth.uid &&
-                       withinLimits() && imageUrlIsSafe();
+                       withinLimits() && imageUrlIsSafe() && visibilityIsValid();
 
-      // Editing content is limited to the creator or an admin. Recipes predating
-      // the createdBy field stay editable by any signed-in user so existing data
-      // does not become read-only.
-      function ownsRecipe() {
-        return !('createdBy' in resource.data) ||
-               resource.data.createdBy == request.auth.uid ||
-               isAdmin();
+      // No favourite carve-out any more: favourites are per-user, in
+      // users/{uid}/favorites, so nobody needs write access to someone else's recipe.
+      // Ownership cannot be handed over either, which is what a forked copy is for.
+      allow update: if (owns() || isAdmin()) &&
+                       withinLimits() && imageUrlIsSafe() && visibilityIsValid() &&
+                       request.resource.data.createdBy == resource.data.createdBy;
+
+      allow delete: if owns() || isAdmin();
+
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if durableAccount() &&
+                         request.resource.data.userId == request.auth.uid &&
+                         request.resource.data.get('text', '').size() <= 2000;
+        allow update: if signedIn() && request.auth.uid == resource.data.userId;
+        allow delete: if (signedIn() && request.auth.uid == resource.data.userId) ||
+                         isAdmin();
       }
 
-      // isFavorite is a shared flag on the recipe itself, so any signed-in user
-      // may toggle it — but only it.
-      function togglesFavoriteOnly() {
-        return request.resource.data.diff(resource.data)
-                 .affectedKeys().hasOnly(['isFavorite']);
+      match /ratings/{ratingId} {
+        allow read: if true;
+        allow create, update: if durableAccount() && ratingId == request.auth.uid;
+        allow delete: if signedIn() && ratingId == request.auth.uid;
       }
-
-      allow update: if request.auth != null &&
-                       (togglesFavoriteOnly() ||
-                        (ownsRecipe() && withinLimits() && imageUrlIsSafe()));
-
-      // Users can delete their own recipes, admins can delete any
-      allow delete: if request.auth != null && 
-                       (resource.data.createdBy == request.auth.uid || isAdmin());
     }
-    
-    // Comments collection (for future implementation)
-    match /recipes/{recipeId}/comments/{commentId} {
-      // Anyone can read comments
-      allow read: if true;
-      
-      // Signed-in users can create comments
-      allow create: if request.auth != null;
-      
-      // Users can update/delete their own comments, admins can delete any
-      allow update: if request.auth != null && 
-                       request.auth.uid == resource.data.userId;
-      allow delete: if (request.auth != null && request.auth.uid == resource.data.userId) ||
-                       isAdmin();
+
+    match /households/{householdId} {
+      allow read: if signedIn() && request.auth.uid in resource.data.memberUids;
+
+      allow create: if durableAccount() &&
+                       request.resource.data.memberUids == [request.auth.uid] &&
+                       request.resource.data.createdBy == request.auth.uid &&
+                       request.resource.data.get('name', '').size() <= 100;
+
+      // A member may rename it. Membership changes go through the join/leave functions,
+      // which run with admin privileges — doing it in rules would mean letting a
+      // non-member write this document and trusting an invite code they supplied.
+      allow update: if signedIn() && request.auth.uid in resource.data.memberUids &&
+                       !request.resource.data.diff(resource.data)
+                          .affectedKeys().hasAny(['memberUids', 'createdBy']);
+      allow delete: if false;
     }
-    
-    // Ratings collection (for future implementation)
-    match /recipes/{recipeId}/ratings/{ratingId} {
-      // Anyone can read ratings
-      allow read: if true;
-      
-      // Signed-in users can create/update their own ratings
-      allow create: if request.auth != null && ratingId == request.auth.uid;
-      allow update: if request.auth != null && ratingId == request.auth.uid;
-      
-      // Users can delete their own ratings
-      allow delete: if request.auth != null && ratingId == request.auth.uid;
+
+    // No client access. Readable invites would let anyone enumerate codes; joining goes
+    // through a function that validates the code server-side.
+    match /householdInvites/{code} {
+      allow read, write: if false;
+    }
+
+    // Filed by anyone signed in, read only by admins — so an author cannot see who
+    // reported them.
+    match /reports/{reportId} {
+      allow create: if durableAccount() &&
+                       request.resource.data.reportedBy == request.auth.uid &&
+                       request.resource.data.get('reason', '').size() <= 1000;
+      allow read, update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /groceryLists/{listId} {
+      allow read, update, delete: if signedIn() &&
+                                     sharesHousehold(resource.data.get('householdId', null));
+      allow create: if signedIn() &&
+                       myHouseholdId() != null &&
+                       request.resource.data.householdId == myHouseholdId();
+
+      match /items/{itemId} {
+        function listHousehold() {
+          return get(/databases/$(database)/documents/groceryLists/$(listId))
+                   .data.get('householdId', null);
+        }
+        allow read, write: if signedIn() && sharesHousehold(listHousehold());
+      }
+    }
+
+    match /groceryHistory/{householdId}/purchases/{purchaseId} {
+      allow read, write: if signedIn() && sharesHousehold(householdId);
+    }
+
+    // Cached ingredient parses, keyed by the raw string. Shared so an AI parse is paid
+    // for once across everyone; only the functions write them.
+    match /ingredientCache/{hash} {
+      allow read: if signedIn();
+      allow write: if false;
     }
   }
 }

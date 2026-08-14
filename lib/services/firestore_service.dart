@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:recipe_keeper/models/recipe.dart';
@@ -16,24 +18,59 @@ class FirestoreService {
   CollectionReference get _recipesCollection =>
       _firestore.collection('recipes');
 
-  /// Get all recipes (real-time stream) with error handling
+  /// Every recipe this viewer is allowed to see, as one stream.
+  ///
+  /// Three constrained queries merged here rather than one query over the collection.
+  /// Security rules do not filter: Firestore rejects any query that *could* return a
+  /// document the reader may not read, so an unfiltered `orderBy('createdAt')` — which
+  /// is what this used to be — fails outright rather than returning less. Each scope
+  /// below is provably readable, which is what makes it allowed.
+  ///
+  /// Also the cheap shape: a signed-out visitor runs one query for public recipes and
+  /// reads nothing else.
   Stream<List<Recipe>> getRecipesStream() {
+    return _auth.authStateChanges().asyncExpand((user) {
+      final public = _scoped('visibility', 'public');
+      if (user == null) return public;
+
+      // The household id has to be read before the household query can be built, and it
+      // changes when someone joins or leaves, so it is watched rather than read once.
+      final householdIds = _firestore
+          .collection('users')
+          .doc(user.uid)
+          .snapshots()
+          .map((snap) => snap.data()?['householdId'] as String?)
+          .distinct();
+
+      return _switchLatest(householdIds, (String? householdId) {
+        return _mergeById([
+          public,
+          _scoped('createdBy', user.uid),
+          if (householdId != null) _scoped('householdId', householdId),
+        ]);
+      });
+    });
+  }
+
+  /// One scope of the recipe collection, ordered newest first.
+  Stream<List<Recipe>> _scoped(String field, String value) {
     return _recipesCollection
+        .where(field, isEqualTo: value)
         .orderBy('createdAt', descending: true)
         .snapshots()
         .handleError((error, stackTrace) {
       LoggerService.error(
-        'Error in recipes stream',
+        'Error in recipes stream ($field)',
         error: error,
         stackTrace: stackTrace,
         tag: 'Firestore',
       );
     }).map((snapshot) {
       try {
-        return snapshot.docs.map((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          return RecipeMapper.fromFirestore(doc.id, data);
-        }).toList();
+        return snapshot.docs
+            .map((doc) =>
+                RecipeMapper.fromFirestore(doc.id, doc.data() as Map<String, dynamic>))
+            .toList();
       } catch (e, stackTrace) {
         LoggerService.error(
           'Error mapping recipe documents',
@@ -44,6 +81,75 @@ class FirestoreService {
         return <Recipe>[];
       }
     });
+  }
+
+  /// Re-subscribes to a new inner stream each time the outer one emits, dropping the
+  /// previous subscription.
+  ///
+  /// `asyncExpand` cannot do this: it waits for each inner stream to finish, and a
+  /// Firestore snapshot stream never does, so the household query would never switch
+  /// when someone joins or leaves. rxdart has `switchMap`, but this is the only place
+  /// that needs it and a dependency for one operator is not worth carrying.
+  Stream<T> _switchLatest<S, T>(Stream<S> outer, Stream<T> Function(S) select) {
+    final controller = StreamController<T>();
+    StreamSubscription<S>? outerSub;
+    StreamSubscription<T>? innerSub;
+
+    controller.onListen = () {
+      outerSub = outer.listen((value) async {
+        await innerSub?.cancel();
+        innerSub = select(value).listen(
+          controller.add,
+          onError: controller.addError,
+        );
+      }, onError: controller.addError);
+    };
+    controller.onCancel = () async {
+      await innerSub?.cancel();
+      await outerSub?.cancel();
+    };
+
+    return controller.stream;
+  }
+
+  /// Combines the scopes, keeping one copy of anything that appears in more than one —
+  /// a public recipe you wrote arrives from two of them.
+  Stream<List<Recipe>> _mergeById(List<Stream<List<Recipe>>> streams) {
+    final latest = List<List<Recipe>>.filled(streams.length, const <Recipe>[]);
+    final controller = StreamController<List<Recipe>>();
+    final subs = <StreamSubscription<List<Recipe>>>[];
+
+    void emit() {
+      final byId = <String, Recipe>{};
+      for (final batch in latest) {
+        for (final recipe in batch) {
+          final id = recipe.firestoreId;
+          if (id != null) byId[id] = recipe;
+        }
+      }
+      final merged = byId.values.toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      if (!controller.isClosed) controller.add(merged);
+    }
+
+    controller.onListen = () {
+      for (var i = 0; i < streams.length; i++) {
+        final index = i;
+        subs.add(streams[index].listen((batch) {
+          latest[index] = batch;
+          emit();
+        }, onError: (Object e) {
+          LoggerService.error('Recipe scope failed', error: e, tag: 'Firestore');
+        }));
+      }
+    };
+    controller.onCancel = () async {
+      for (final sub in subs) {
+        await sub.cancel();
+      }
+    };
+
+    return controller.stream;
   }
 
   /// Get single recipe by ID with error handling and caching
@@ -110,8 +216,9 @@ class FirestoreService {
       data['createdAt'] = FieldValue.serverTimestamp();
       data['updatedAt'] = FieldValue.serverTimestamp();
       data['createdBy'] = user.uid;
-      data['createdByEmail'] = user.email;
-      data['createdByName'] = user.displayName ?? user.email;
+      // No createdByEmail: recipes are world-readable, so writing an address here
+      // published it. Attribution is by display name.
+      data['createdByName'] = user.displayName ?? 'Someone';
 
       final docRef = await _recipesCollection.add(data);
       LoggerService.success('Recipe added: ${docRef.id}', 'Firestore');
@@ -212,10 +319,29 @@ class FirestoreService {
     }
   }
 
-  /// Toggle favorite status with error handling
+  /// Toggle a favourite for the signed-in user.
+  ///
+  /// Writes to users/{uid}/favorites rather than the recipe document. It used to set an
+  /// `isFavorite` flag on the recipe itself, which made it shared state: one person
+  /// favouriting something marked it for everyone, and the rules needed a carve-out
+  /// letting any signed-in user write any recipe in order to allow it.
   Future<bool> toggleFavorite(String id, bool isFavorite) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      LoggerService.warning('Cannot favourite while signed out', 'Firestore');
+      return false;
+    }
     try {
-      await _recipesCollection.doc(id).update({'isFavorite': isFavorite});
+      final ref = _firestore
+          .collection('users')
+          .doc(user.uid)
+          .collection('favorites')
+          .doc(id);
+      if (isFavorite) {
+        await ref.set({'addedAt': FieldValue.serverTimestamp()});
+      } else {
+        await ref.delete();
+      }
       LoggerService.debug('Favorite toggled for: $id', 'Firestore');
       return true;
     } on FirebaseException catch (e) {
@@ -236,6 +362,22 @@ class FirestoreService {
     }
   }
 
+
+  /// The signed-in user's favourite recipe ids.
+  ///
+  /// Empty for a signed-out visitor, which is correct: favourites are personal, so
+  /// there is nothing to show rather than everyone's.
+  Stream<Set<String>> watchFavoriteIds() {
+    return _auth.authStateChanges().asyncExpand((user) {
+      if (user == null) return Stream.value(<String>{});
+      return _firestore
+          .collection('users')
+          .doc(user.uid)
+          .collection('favorites')
+          .snapshots()
+          .map((snap) => snap.docs.map((d) => d.id).toSet());
+    });
+  }
 
   /// Import recipes from JSON (bulk add)
   Future<int> importRecipes(List<Recipe> recipes) async {

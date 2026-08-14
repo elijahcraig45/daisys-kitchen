@@ -63,7 +63,7 @@ class AuthAppBar extends ConsumerWidget implements PreferredSizeWidget {
                           authService.displayName,
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        if (authService.isAdmin)
+                        if (ref.watch(isAdminProvider).valueOrNull ?? false)
                           Text(
                             'Admin',
                             style: TextStyle(
@@ -153,7 +153,7 @@ class AdminGuard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isAdmin = ref.watch(isAdminProvider);
+    final isAdmin = ref.watch(isAdminProvider).valueOrNull ?? false;
     
     if (isAdmin) {
       return child;
