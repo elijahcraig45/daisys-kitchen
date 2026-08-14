@@ -6,13 +6,28 @@
  * so this reads the data back and checks the properties that matter. Emulator only.
  */
 
-process.env.FIRESTORE_EMULATOR_HOST =
-  process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080';
+// Emulator by default. Pass --production with FIRESTORE_ACCESS_TOKEN to check the real
+// thing after a migration, which is the only way to know it did what it said.
+const PRODUCTION = process.argv.includes('--production');
+if (!PRODUCTION) {
+  process.env.FIRESTORE_EMULATOR_HOST =
+    process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080';
+}
 
 const { initializeApp } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
 
-initializeApp({ projectId: process.env.GOOGLE_CLOUD_PROJECT || 'recipe-f644f' });
+const token = process.env.FIRESTORE_ACCESS_TOKEN;
+initializeApp({
+  projectId: process.env.GOOGLE_CLOUD_PROJECT || 'recipe-f644f',
+  ...(PRODUCTION && token
+    ? {
+        credential: {
+          getAccessToken: async () => ({ access_token: token, expires_in: 3300 }),
+        },
+      }
+    : {}),
+});
 const db = getFirestore();
 
 const failures = [];

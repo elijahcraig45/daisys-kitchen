@@ -46,8 +46,32 @@ if (EMULATOR) {
     process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080';
 }
 
+/* Credentials, in order of what is actually available.
+ *
+ * Application Default Credentials are the normal answer, but they need an interactive
+ * `gcloud auth application-default login`. When ADC is absent, an access token in
+ * FIRESTORE_ACCESS_TOKEN is used instead — `getAccessToken` is the whole of the
+ * firebase-admin Credential interface, so this is the documented way in rather than a
+ * workaround. Get one with:
+ *
+ *   gcloud auth print-access-token --account=you@example.com
+ *
+ * Note this machine exports GOOGLE_APPLICATION_CREDENTIALS pointing at an unrelated
+ * work service-account key, which the Admin SDK would happily pick up and then fail
+ * against this project. Run with `env -u GOOGLE_APPLICATION_CREDENTIALS`.
+ */
+function credentials() {
+  const token = process.env.FIRESTORE_ACCESS_TOKEN;
+  if (!token) return applicationDefault();
+  return {
+    getAccessToken: async () => ({ access_token: token, expires_in: 3300 }),
+  };
+}
+
 initializeApp(
-  EMULATOR ? { projectId: PROJECT_ID } : { credential: applicationDefault(), projectId: PROJECT_ID },
+  EMULATOR
+    ? { projectId: PROJECT_ID }
+    : { credential: credentials(), projectId: PROJECT_ID },
 );
 const db = getFirestore();
 
