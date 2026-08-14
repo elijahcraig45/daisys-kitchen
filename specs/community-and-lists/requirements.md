@@ -279,10 +279,21 @@ households is a larger change and out of scope.
 
 ### R3.3 The same ingredient from two recipes becomes one item
 
-- **Given** two recipes needing `1 cup flour` and `1.5 cups (180g) all-purpose flour`
+- **Given** two recipes both needing all-purpose flour, written as `1 cup all-purpose
+  flour` and `1.5 cups (180g) all-purpose flour (spooned & leveled)`
 - **When** both are added
 - **Then** the list shows one flour item of `2.5 cups`
-- **And** it records both recipes as sources.
+- **And** it records both recipes as sources
+- **And** two ingredients whose names differ in substance — `flour` and `almond flour`,
+  or `flour` and `self rising flour` — stay as separate lines.
+
+Merging is on the canonicalised name, which strips parentheticals, anything after a
+comma, and trailing "for the crust" style notes. It deliberately does **not** merge a
+shorter name into a longer one that contains it. This requirement originally said `flour`
+and `all-purpose flour` should combine, which sounds right until the same rule merges
+`almond flour` into plain flour and quietly puts the wrong thing on the list. Same
+principle as refusing to convert cups to grams: two honest lines beat one confident wrong
+one.
 
 ### R3.4 Quantities are parsed from real data, not ideal data
 
