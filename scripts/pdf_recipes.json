@@ -1,0 +1,962 @@
+[
+  {
+    "title": "Caribbean Jerk Marinated Chicken",
+    "description": "Caribbean jerk seasoning adds just the right amount of heat and spice to this marinade for chicken. Serve with a black bean and rice salad, if desired.",
+    "servings": 6,
+    "prepTimeMinutes": 5,
+    "cookTimeMinutes": 40,
+    "category": "Main Course",
+    "cuisine": "Caribbean",
+    "difficulty": "easy",
+    "source": "McCormick",
+    "tags": [
+      "grilling",
+      "chicken",
+      "marinade"
+    ],
+    "notes": null,
+    "ingredients": [
+      {
+        "name": "Caribbean jerk chicken seasoning",
+        "amount": "3",
+        "unit": "tablespoons (45ml)",
+        "notes": "McCormick A Hint of Sea Salt"
+      },
+      {
+        "name": "Vegetable oil",
+        "amount": "3",
+        "unit": "tablespoons (45ml)",
+        "notes": null
+      },
+      {
+        "name": "Soy sauce",
+        "amount": "2",
+        "unit": "tablespoons (30ml)",
+        "notes": null
+      },
+      {
+        "name": "Cider vinegar",
+        "amount": "1",
+        "unit": "tablespoon (15ml)",
+        "notes": null
+      },
+      {
+        "name": "Bone-in chicken parts",
+        "amount": "2 1/2",
+        "unit": "pounds (1.1kg)",
+        "notes": null
+      }
+    ],
+    "steps": [
+      "Mix the seasoning, oil, soy sauce and vinegar in a small bowl. Reserve 2 tablespoons of the marinade for basting. Place the chicken in a large resealable plastic bag or glass dish. Add the remaining marinade and turn to coat well.",
+      "Refrigerate 30 minutes, or longer for extra flavour. Remove the chicken from the marinade and discard any marinade that remains.",
+      "Grill over medium heat with the lid closed for 30 to 40 minutes, or until the chicken is cooked through, turning occasionally and basting with the reserved marinade during the last few minutes of cooking."
+    ]
+  },
+  {
+    "title": "Baked Honey Garlic Chicken Tenders with Green Beans",
+    "description": "Panko-crusted chicken tenders baked until crisp, then tossed in a sticky honey garlic sauce and served with green beans.",
+    "servings": 4,
+    "prepTimeMinutes": 20,
+    "cookTimeMinutes": 15,
+    "category": "Main Course",
+    "cuisine": "Asian",
+    "difficulty": "easy",
+    "source": null,
+    "tags": [
+      "chicken",
+      "baked",
+      "honey garlic"
+    ],
+    "notes": "The source this was captured from was cut off partway through the ingredient list, so quantities for the chicken, eggs, panko, ginger and the marinade soy sauce are not recorded. The sauce quantities are complete.",
+    "ingredients": [
+      {
+        "name": "Chicken tenders",
+        "amount": "",
+        "unit": null,
+        "notes": "quantity missing from the source"
+      },
+      {
+        "name": "Soy sauce",
+        "amount": "a splash",
+        "unit": null,
+        "notes": "for the marinade"
+      },
+      {
+        "name": "Garlic",
+        "amount": "",
+        "unit": null,
+        "notes": "for the marinade; quantity missing from the source"
+      },
+      {
+        "name": "Ginger",
+        "amount": "",
+        "unit": null,
+        "notes": "for the marinade; quantity missing from the source"
+      },
+      {
+        "name": "Eggs, beaten",
+        "amount": "",
+        "unit": null,
+        "notes": "quantity missing from the source"
+      },
+      {
+        "name": "Panko breadcrumbs",
+        "amount": "",
+        "unit": null,
+        "notes": "quantity missing from the source"
+      },
+      {
+        "name": "Green beans",
+        "amount": "",
+        "unit": null,
+        "notes": "to serve"
+      },
+      {
+        "name": "Green onions, sliced",
+        "amount": "",
+        "unit": null,
+        "notes": "as garnish"
+      },
+      {
+        "name": "Toasted sesame seeds",
+        "amount": "",
+        "unit": null,
+        "notes": "as garnish"
+      },
+      {
+        "name": "Honey",
+        "amount": "1/3",
+        "unit": "cup (80ml)",
+        "notes": "for the sauce"
+      },
+      {
+        "name": "Soy sauce",
+        "amount": "2",
+        "unit": "tablespoons (30ml)",
+        "notes": "for the sauce"
+      },
+      {
+        "name": "Sriracha",
+        "amount": "1",
+        "unit": "tablespoon (15ml)",
+        "notes": "for the sauce"
+      },
+      {
+        "name": "Garlic, minced",
+        "amount": "3",
+        "unit": "cloves",
+        "notes": "for the sauce"
+      },
+      {
+        "name": "Water",
+        "amount": "1",
+        "unit": "tablespoon (15ml)",
+        "notes": "for the cornstarch slurry"
+      },
+      {
+        "name": "Cornstarch",
+        "amount": "1",
+        "unit": "tablespoon (15ml)",
+        "notes": "for the cornstarch slurry"
+      }
+    ],
+    "steps": [
+      "Preheat the oven to 400\u00b0F (200\u00b0C). Line a baking sheet with parchment paper.",
+      "Marinate the chicken tenders with a splash of soy sauce, garlic and ginger for 15 minutes.",
+      "Dip the chicken tenders into the beaten eggs, then into the panko breadcrumbs.",
+      "Place on the baking sheet and bake until golden brown and crispy, about 15 minutes.",
+      "While the chicken bakes, bring the honey, soy sauce, Sriracha and garlic to a simmer. Add the cornstarch slurry and stir until thickened.",
+      "Pour the sauce over the chicken and gently toss.",
+      "Serve garnished with green onions and toasted sesame seeds, with a side of green beans."
+    ]
+  },
+  {
+    "title": "Vegetable Spring Rolls",
+    "description": "Crispy fried Indo-Chinese style vegetable spring rolls, filled with carrot, capsicum, beans and cabbage. A vegetarian and naturally vegan starter.",
+    "servings": 15,
+    "prepTimeMinutes": 10,
+    "cookTimeMinutes": 15,
+    "category": "Appetizer",
+    "cuisine": "Indo-Chinese",
+    "difficulty": "medium",
+    "source": "https://pin.it/6Jk6qir",
+    "tags": [
+      "vegetarian",
+      "vegan",
+      "fried",
+      "appetizer"
+    ],
+    "notes": "Makes about 15 spring rolls.",
+    "ingredients": [
+      {
+        "name": "Spring roll sheets",
+        "amount": "15",
+        "unit": null,
+        "notes": null
+      },
+      {
+        "name": "Extra virgin olive oil",
+        "amount": "2",
+        "unit": "tablespoons (30ml)",
+        "notes": null
+      },
+      {
+        "name": "Garlic",
+        "amount": "1/2",
+        "unit": "tablespoon (7.5ml)",
+        "notes": "finely chopped"
+      },
+      {
+        "name": "Spring onions",
+        "amount": "1/2",
+        "unit": "cup (120ml)",
+        "notes": "white part"
+      },
+      {
+        "name": "Cabbage",
+        "amount": "1 1/2",
+        "unit": "cups (360ml)",
+        "notes": "shredded"
+      },
+      {
+        "name": "Carrot",
+        "amount": "3/4",
+        "unit": "cup (180ml)",
+        "notes": "julienne"
+      },
+      {
+        "name": "Capsicum",
+        "amount": "3/4",
+        "unit": "cup (180ml)",
+        "notes": "julienne"
+      },
+      {
+        "name": "Green beans",
+        "amount": "1/2",
+        "unit": "cup (120ml)",
+        "notes": "finely chopped"
+      },
+      {
+        "name": "Salt",
+        "amount": "to taste",
+        "unit": null,
+        "notes": null
+      },
+      {
+        "name": "Pepper",
+        "amount": "to taste",
+        "unit": null,
+        "notes": null
+      },
+      {
+        "name": "Soy sauce",
+        "amount": "1",
+        "unit": "teaspoon (5ml)",
+        "notes": null
+      },
+      {
+        "name": "Chilli sauce",
+        "amount": "1",
+        "unit": "teaspoon (5ml)",
+        "notes": "such as Sriracha"
+      },
+      {
+        "name": "Oil",
+        "amount": "",
+        "unit": null,
+        "notes": "for deep frying"
+      }
+    ],
+    "steps": [
+      "Transfer the spring roll sheets from the freezer to the fridge or kitchen counter and let them thaw naturally.",
+      "Add 2 tablespoons of olive oil to a non-stick pan and heat over a low flame.",
+      "Add the onions and garlic and saut\u00e9 for a few seconds over low heat, until fragrant.",
+      "Add all of the vegetables and cook over medium heat for 2 minutes.",
+      "Add the salt, pepper, soy sauce and Sriracha. Mix well.",
+      "Turn the heat to low, cover the pan and let the vegetables cook for about 4 to 5 minutes.",
+      "Take off the lid and stir. Cook for a further 4 to 5 minutes, until fully reduced and lightly browned.",
+      "Turn off the heat and transfer the mixture to a plate lined with kitchen paper to draw off excess oil. Place more kitchen paper on top and press down so all the oil and moisture is absorbed.",
+      "Fill and roll the spring rolls, then deep fry until golden brown.",
+      "Serve hot with a dip, chutney or ketchup."
+    ]
+  },
+  {
+    "title": "Egg Fried Rice",
+    "description": "A quick fried rice with peas, carrots and scrambled egg, made with cooled cooked rice in a single skillet.",
+    "servings": 6,
+    "prepTimeMinutes": 5,
+    "cookTimeMinutes": 15,
+    "category": "Main Course",
+    "cuisine": "Asian",
+    "difficulty": "easy",
+    "source": null,
+    "tags": [
+      "quick",
+      "rice",
+      "vegetarian"
+    ],
+    "notes": "Per serving: 281 calories, 36g carbohydrates, 8g protein, 12g fat.",
+    "ingredients": [
+      {
+        "name": "Sesame oil",
+        "amount": "2",
+        "unit": "tablespoons (30ml)",
+        "notes": null
+      },
+      {
+        "name": "Vegetable oil",
+        "amount": "2",
+        "unit": "tablespoons (30ml)",
+        "notes": null
+      },
+      {
+        "name": "Cooked rice",
+        "amount": "4",
+        "unit": "cups (960ml)",
+        "notes": "cooled"
+      },
+      {
+        "name": "Soy sauce",
+        "amount": "3",
+        "unit": "tablespoons (45ml)",
+        "notes": null
+      },
+      {
+        "name": "Salt",
+        "amount": "1",
+        "unit": "teaspoon (5ml)",
+        "notes": null
+      },
+      {
+        "name": "Pepper",
+        "amount": "1",
+        "unit": "teaspoon (5ml)",
+        "notes": null
+      },
+      {
+        "name": "Frozen peas and diced carrots",
+        "amount": "2",
+        "unit": "cups (480ml)",
+        "notes": null
+      },
+      {
+        "name": "Eggs",
+        "amount": "3",
+        "unit": "large",
+        "notes": "lightly beaten"
+      },
+      {
+        "name": "Green onions, sliced",
+        "amount": "",
+        "unit": null,
+        "notes": "to top"
+      }
+    ],
+    "steps": [
+      "In a large skillet, pan fry the carrots and peas with the oil for about 3 to 5 minutes, until soft.",
+      "Slide the vegetables to the side and pour in the eggs.",
+      "Scramble the eggs.",
+      "Stir in the rice, soy sauce, salt and pepper.",
+      "Stir for a few minutes until the rice is heated through.",
+      "Top with sliced green onions."
+    ]
+  },
+  {
+    "title": "One-Pot Chicken and Cabbage Soup",
+    "description": "A simple but flavourful chicken and cabbage soup for a cold day. Sherry vinegar adds a touch of brightness that pairs well with the vegetables. Serve with crusty bread.",
+    "servings": 4,
+    "prepTimeMinutes": 20,
+    "cookTimeMinutes": 20,
+    "category": "Main Course",
+    "cuisine": "American",
+    "difficulty": "easy",
+    "source": "https://www.eatingwell.com",
+    "tags": [
+      "soup",
+      "gluten-free",
+      "high-protein",
+      "egg-free",
+      "nut-free",
+      "soy-free"
+    ],
+    "notes": "To make ahead: refrigerate for up to 3 days or freeze for up to 2 months. Per serving (about 1 3/4 cups): 359 calories, 16g fat, 25g carbohydrates, 31g protein.",
+    "ingredients": [
+      {
+        "name": "Extra-virgin olive oil",
+        "amount": "3",
+        "unit": "tablespoons (45ml)",
+        "notes": null
+      },
+      {
+        "name": "Sweet onion",
+        "amount": "1",
+        "unit": "cup (240ml)",
+        "notes": "chopped"
+      },
+      {
+        "name": "Cabbage",
+        "amount": "4",
+        "unit": "cups (960ml)",
+        "notes": "shredded"
+      },
+      {
+        "name": "Garlic",
+        "amount": "2",
+        "unit": "cloves",
+        "notes": "minced"
+      },
+      {
+        "name": "Low-sodium chicken broth",
+        "amount": "4",
+        "unit": "cups (960ml)",
+        "notes": null
+      },
+      {
+        "name": "Yukon Gold potatoes",
+        "amount": "2",
+        "unit": "medium",
+        "notes": "peeled and chopped"
+      },
+      {
+        "name": "Turnip",
+        "amount": "1",
+        "unit": "medium",
+        "notes": "peeled and chopped"
+      },
+      {
+        "name": "Salt",
+        "amount": "1/4",
+        "unit": "teaspoon (1.25ml)",
+        "notes": null
+      },
+      {
+        "name": "Ground pepper",
+        "amount": "1/4",
+        "unit": "teaspoon (1.25ml)",
+        "notes": null
+      },
+      {
+        "name": "Cooked chicken",
+        "amount": "2",
+        "unit": "cups (480ml)",
+        "notes": "shredded"
+      },
+      {
+        "name": "Sherry vinegar",
+        "amount": "2",
+        "unit": "tablespoons (30ml)",
+        "notes": null
+      },
+      {
+        "name": "Parmesan cheese",
+        "amount": "4",
+        "unit": "tablespoons (60ml)",
+        "notes": "grated"
+      },
+      {
+        "name": "Fresh flat-leaf parsley",
+        "amount": "",
+        "unit": null,
+        "notes": "chopped, for garnish"
+      }
+    ],
+    "steps": [
+      "Heat the oil in a large Dutch oven or pot over medium heat. Add the onion and cook, stirring often, until translucent, about 6 minutes. Add the cabbage and garlic and cook, stirring often, until the cabbage softens, about 6 minutes.",
+      "Stir in the broth, potatoes, turnip, salt and pepper. Bring to a boil over medium-high heat, then reduce the heat to medium-low and simmer for 15 minutes. Stir in the chicken and continue cooking until the potatoes and turnips are tender, about 5 minutes more. Remove from the heat and stir in the vinegar. Top each serving with Parmesan and garnish with parsley, if desired."
+    ]
+  },
+  {
+    "title": "Creamy Honey Mustard Chicken with Crispy Bacon",
+    "description": "Chicken breasts in a creamy honey mustard sauce with crispy bacon pieces, with a dairy-free option.",
+    "servings": 5,
+    "prepTimeMinutes": 10,
+    "cookTimeMinutes": 15,
+    "category": "Main Course",
+    "cuisine": "American",
+    "difficulty": "easy",
+    "source": "Cafe Delites",
+    "tags": [
+      "chicken",
+      "bacon",
+      "honey mustard",
+      "skillet"
+    ],
+    "notes": "Replace the cream with the milk of your choice, but make sure you like the flavour of the milk as it will carry into the sauce. Skim, 2% or full fat all work, and almond milk gives a dairy-free option. Nutrition is per serving including cream: 327 calories, 20g carbohydrates, 25g protein, 12g fat.",
+    "ingredients": [
+      {
+        "name": "Honey",
+        "amount": "1/3",
+        "unit": "cup (80ml)",
+        "notes": null
+      },
+      {
+        "name": "Whole grain mustard",
+        "amount": "3",
+        "unit": "level tablespoons (45ml)",
+        "notes": null
+      },
+      {
+        "name": "Garlic, minced",
+        "amount": "1 1/2",
+        "unit": "tablespoons (22.5ml)",
+        "notes": "or 3 to 4 cloves, crushed"
+      },
+      {
+        "name": "Olive oil",
+        "amount": "1",
+        "unit": "tablespoon (15ml)",
+        "notes": null
+      },
+      {
+        "name": "Salt",
+        "amount": "to taste",
+        "unit": null,
+        "notes": null
+      },
+      {
+        "name": "Skinless, boneless chicken breasts",
+        "amount": "5",
+        "unit": null,
+        "notes": "or chicken thighs"
+      },
+      {
+        "name": "Bacon, diced",
+        "amount": "1/2",
+        "unit": "cup (120ml)",
+        "notes": "trimmed of rind and fat; about 4 small rashers"
+      },
+      {
+        "name": "Cream",
+        "amount": "1/3",
+        "unit": "cup (80ml)",
+        "notes": "light or reduced fat; see notes for substitutions"
+      },
+      {
+        "name": "Milk",
+        "amount": "1",
+        "unit": "cup (240ml)",
+        "notes": "skim, 2% or full fat; almond milk for dairy free"
+      },
+      {
+        "name": "Cornstarch",
+        "amount": "1",
+        "unit": "teaspoon (5ml)",
+        "notes": "mixed with 1 tablespoon water"
+      },
+      {
+        "name": "Fresh parsley, chopped",
+        "amount": "2",
+        "unit": "tablespoons (30ml)",
+        "notes": null
+      }
+    ],
+    "steps": [
+      "In a large, shallow dish, combine the honey, mustard, garlic, oil and salt to taste. Go easy on the salt if serving with bacon, which will add its own. Coat the chicken evenly in the sauce and set aside.",
+      "Heat a nonstick pan or skillet over medium heat. Fry the bacon until crispy, then transfer to a plate. In the same pan, sear the chicken fillets on each side in the oil left from the bacon, until they just begin to brown \u2014 about 3 minutes per side. They will not be cooked through yet, as they finish in the sauce.",
+      "Add any remaining honey mustard sauce to the pan along with the cream and milk. Bring to a simmer, stirring occasionally to mix the flavours through the sauce, about 3 minutes, until the chicken is cooked through. Transfer the chicken to a warm plate.",
+      "Pour the cornstarch mixture into the centre of the pan, mixing it through the sauce until it thickens. Return the chicken to the pan and coat with the sauce. Top with the bacon and garnish with parsley.",
+      "Serve over steamed or roasted vegetables for a lighter option. It is also good with pasta, rice or mashed potatoes."
+    ]
+  },
+  {
+    "title": "Mini Chicken Pot Pies",
+    "description": "Crescent roll dough baked in a muffin tin with a creamy chicken and vegetable filling, for pot pies in individual portions.",
+    "servings": 8,
+    "prepTimeMinutes": 15,
+    "cookTimeMinutes": 20,
+    "category": "Main Course",
+    "cuisine": "American",
+    "difficulty": "easy",
+    "source": null,
+    "tags": [
+      "chicken",
+      "comfort food",
+      "muffin tin"
+    ],
+    "notes": "Makes 8 mini pot pies.",
+    "ingredients": [
+      {
+        "name": "Cooked chicken",
+        "amount": "1",
+        "unit": "cup (240ml)",
+        "notes": "cubed"
+      },
+      {
+        "name": "Cream of chicken soup",
+        "amount": "3/4",
+        "unit": "cup (180ml)",
+        "notes": "most of a 10 3/4 oz can"
+      },
+      {
+        "name": "Sour cream",
+        "amount": "1/4",
+        "unit": "cup (60ml)",
+        "notes": "light is fine"
+      },
+      {
+        "name": "Frozen mixed vegetables",
+        "amount": "1",
+        "unit": "cup (240ml)",
+        "notes": "8 oz"
+      },
+      {
+        "name": "Refrigerated crescent rolls",
+        "amount": "1",
+        "unit": "tube",
+        "notes": null
+      },
+      {
+        "name": "Poultry seasoning",
+        "amount": "1/4",
+        "unit": "teaspoon (1.25ml)",
+        "notes": null
+      },
+      {
+        "name": "Pepper",
+        "amount": "1",
+        "unit": "pinch",
+        "notes": "about 1/8 teaspoon"
+      }
+    ],
+    "steps": [
+      "Preheat the oven to 375\u00b0F (190\u00b0C).",
+      "Thaw the frozen vegetables completely, defrosting them in the microwave if you like.",
+      "Mix together the soup and sour cream. Mix in the poultry seasoning and pepper, then the chicken and vegetables.",
+      "On a lightly floured surface, unroll the crescent dough. Pinch the diagonal lines together and cut into 8 squares.",
+      "Spray 8 regular size muffin cups with nonstick spray. Press a crescent square into each cup so just the corners extend above the top of the pan. Spoon the chicken mixture into each lined cup, about 1/4 cup each.",
+      "Bake for 18 to 20 minutes, until the crescents are deep golden brown. Wait about 5 minutes before removing the pot pies from the tin. Serve immediately."
+    ]
+  },
+  {
+    "title": "Romano Chicken with Lemon Garlic Pasta",
+    "description": "Crispy parmesan panko breaded chicken served over pasta in a fresh lemon garlic cream sauce, on the table in about 30 minutes.",
+    "servings": 2,
+    "prepTimeMinutes": 10,
+    "cookTimeMinutes": 20,
+    "category": "Main Course",
+    "cuisine": "Italian",
+    "difficulty": "medium",
+    "source": "Kitchen Nostalgia",
+    "tags": [
+      "chicken",
+      "pasta",
+      "lemon"
+    ],
+    "notes": null,
+    "ingredients": [
+      {
+        "name": "Chicken breasts",
+        "amount": "1/2",
+        "unit": "pound (225g)",
+        "notes": "butterflied or thinly cut into cutlets"
+      },
+      {
+        "name": "Salt and pepper",
+        "amount": "to taste",
+        "unit": null,
+        "notes": "for the chicken"
+      },
+      {
+        "name": "Parmesan or Romano cheese",
+        "amount": "1/2",
+        "unit": "cup (120ml)",
+        "notes": "finely grated"
+      },
+      {
+        "name": "Egg",
+        "amount": "1",
+        "unit": null,
+        "notes": null
+      },
+      {
+        "name": "Dry parsley",
+        "amount": "",
+        "unit": null,
+        "notes": "to season the egg"
+      },
+      {
+        "name": "Panko bread crumbs",
+        "amount": "1/2",
+        "unit": "cup (120ml)",
+        "notes": "homemade or store-bought"
+      },
+      {
+        "name": "Oil",
+        "amount": "",
+        "unit": null,
+        "notes": "for frying; a combination of olive and sunflower oil works well"
+      },
+      {
+        "name": "Linguine or spaghetti",
+        "amount": "1/2",
+        "unit": "pound (225g)",
+        "notes": "or other pasta"
+      },
+      {
+        "name": "Lemon juice",
+        "amount": "1",
+        "unit": "lemon",
+        "notes": "or to taste"
+      },
+      {
+        "name": "Garlic, minced",
+        "amount": "3",
+        "unit": "cloves",
+        "notes": null
+      },
+      {
+        "name": "Lemon zest",
+        "amount": "1/4",
+        "unit": "lemon",
+        "notes": null
+      },
+      {
+        "name": "Butter",
+        "amount": "2",
+        "unit": "tablespoons (30ml)",
+        "notes": "cold"
+      },
+      {
+        "name": "Whipping cream",
+        "amount": "2-3",
+        "unit": "tablespoons (30-45ml)",
+        "notes": "or to taste"
+      },
+      {
+        "name": "Salt and pepper",
+        "amount": "to taste",
+        "unit": null,
+        "notes": "for the pasta"
+      }
+    ],
+    "steps": [
+      "For the chicken: place the parmesan cheese in a shallow dish. In another dish, beat the egg with the dry parsley. In a third dish, put the panko bread crumbs.",
+      "Season the chicken cutlets with salt and pepper. Dredge in the parmesan, dip into the beaten egg, then press into the panko to coat both sides, shaking off the excess.",
+      "Heat the olive oil in a pan, add the chicken cutlets and cook over low heat until golden and cooked through.",
+      "For the pasta: cook the pasta according to the package directions and drain, reserving about 1/2 cup of the pasta water.",
+      "Add the lemon juice to a pan, then the garlic, lemon zest and a pinch of salt and pepper. Cook until the liquid has reduced by about half.",
+      "Add 1 tablespoon of butter and let it melt slowly into the sauce while swirling the pan. Add the second tablespoon and repeat. Stir in the whipping cream and about 2 tablespoons of the pasta water.",
+      "Add the cooked pasta and toss to combine. Serve the Romano chicken over the lemon garlic pasta."
+    ]
+  },
+  {
+    "title": "Blackened Shrimp Alfredo",
+    "description": "Pan-fried blackened shrimp and pasta in a simple cream sauce. The heat is easy to control and it comes together in about 30 minutes.",
+    "servings": 8,
+    "prepTimeMinutes": 5,
+    "cookTimeMinutes": 15,
+    "category": "Main Course",
+    "cuisine": "American",
+    "difficulty": "easy",
+    "source": "Nourish + Fete",
+    "tags": [
+      "shrimp",
+      "pasta",
+      "alfredo"
+    ],
+    "notes": "For a pop of colour, a few leaves of parsley sprinkled on top are nice. Per serving: 558 calories, 43g carbohydrates, 28g protein, 30g fat.",
+    "ingredients": [
+      {
+        "name": "Raw shrimp",
+        "amount": "1.33",
+        "unit": "pounds (600g)",
+        "notes": "peeled and deveined"
+      },
+      {
+        "name": "Olive oil",
+        "amount": "4",
+        "unit": "tablespoons (60ml)",
+        "notes": "divided"
+      },
+      {
+        "name": "Blackening seasoning",
+        "amount": "2.67",
+        "unit": "tablespoons (40ml)",
+        "notes": null
+      },
+      {
+        "name": "Fettuccine",
+        "amount": "16",
+        "unit": "ounces (450g)",
+        "notes": "or other pasta"
+      },
+      {
+        "name": "Butter",
+        "amount": "4",
+        "unit": "tablespoons (60ml)",
+        "notes": null
+      },
+      {
+        "name": "Flour",
+        "amount": "1.33",
+        "unit": "tablespoons (20ml)",
+        "notes": null
+      },
+      {
+        "name": "Chicken or vegetable broth",
+        "amount": "1",
+        "unit": "cup (240ml)",
+        "notes": null
+      },
+      {
+        "name": "Lemon juice",
+        "amount": "1.33",
+        "unit": "teaspoons (6.5ml)",
+        "notes": null
+      },
+      {
+        "name": "Heavy cream",
+        "amount": "1.33",
+        "unit": "cups (320ml)",
+        "notes": null
+      },
+      {
+        "name": "Garlic powder",
+        "amount": "0.67",
+        "unit": "teaspoons (3.5ml)",
+        "notes": null
+      },
+      {
+        "name": "Salt",
+        "amount": "0.67",
+        "unit": "teaspoons (3.5ml)",
+        "notes": null
+      },
+      {
+        "name": "Fresh-ground black pepper",
+        "amount": "10-13",
+        "unit": "cranks",
+        "notes": null
+      },
+      {
+        "name": "Parmesan cheese",
+        "amount": "0.67",
+        "unit": "cups (160ml)",
+        "notes": "grated"
+      }
+    ],
+    "steps": [
+      "In a medium bowl, combine the shrimp, 2 tablespoons of the olive oil and the blackening seasoning. Stir to coat the shrimp evenly. Use right away, or cover and refrigerate for up to 12 hours for more heat.",
+      "Bring a large pot of salted water to a boil. Cook the pasta to al dente according to the package directions. Drain and set aside.",
+      "While the pasta cooks, warm the remaining oil in a large skillet over medium-high heat. Add the shrimp and cook for 1 to 2 minutes per side, just until charred and cooked through. Remove the shrimp to a plate.",
+      "Melt the butter in the same skillet, then whisk in the flour and cook for 60 seconds.",
+      "Reduce the heat to medium. Whisk in the broth and lemon juice.",
+      "Add the cream, garlic powder, salt and pepper. Whisk until smooth, then let the sauce simmer for 1 to 2 minutes to thicken slightly.",
+      "Stir in the Parmesan and let it melt until the sauce smooths out again. Taste and add more salt or pepper as you like. Stir in the pasta, toss well, top with the shrimp and serve."
+    ]
+  },
+  {
+    "title": "Honey Garlic Chicken Thighs",
+    "description": "Sticky, tender boneless chicken thighs in a garlic, soy and honey sauce. Minimal ingredients, simple to prepare and ready in 20 minutes.",
+    "servings": 4,
+    "prepTimeMinutes": 5,
+    "cookTimeMinutes": 15,
+    "category": "Main Course",
+    "cuisine": "Chinese",
+    "difficulty": "easy",
+    "source": "https://www.kitchensanctuary.com/honey-garlic-chicken/",
+    "tags": [
+      "chicken",
+      "takeaway",
+      "quick",
+      "honey garlic"
+    ],
+    "notes": "Chicken breast works in place of thighs, though thighs are more tender and stand up better to high heat. If using breast, slice into thick strips or flatten with a rolling pin so it cooks through quickly and evenly.\n\nTo make it gluten free, replace the soy sauce with tamari, use gluten free chicken stock, and check your rice vinegar is gluten free.\n\nIngredient swaps: rice vinegar can be swapped for apple cider or white wine vinegar plus 1/4 teaspoon of sugar; light soy sauce for 3/4 tablespoon of dark soy sauce; and the vegetable oil for any neutral high-heat oil such as rapeseed, sunflower or ghee.\n\nTo make ahead or freeze: cook, cool quickly and cover, then refrigerate or freeze. Defrost overnight in the refrigerator and reheat covered with foil on a baking tray at 350\u00b0F (180\u00b0C) for 12 to 15 minutes, until piping hot. The chicken will not be quite as tender reheated.\n\nNutrition is per serving, excluding rice: 472 calories, 29g carbohydrates, 45g protein, 19g fat.",
+    "ingredients": [
+      {
+        "name": "Chicken thighs",
+        "amount": "8",
+        "unit": null,
+        "notes": "skinless and boneless"
+      },
+      {
+        "name": "Cornflour (cornstarch)",
+        "amount": "2",
+        "unit": "tablespoons (30ml)",
+        "notes": null
+      },
+      {
+        "name": "Salt",
+        "amount": "1/2",
+        "unit": "teaspoon (2.5ml)",
+        "notes": null
+      },
+      {
+        "name": "Pepper",
+        "amount": "1/2",
+        "unit": "teaspoon (2.5ml)",
+        "notes": null
+      },
+      {
+        "name": "Vegetable oil",
+        "amount": "2",
+        "unit": "tablespoons (30ml)",
+        "notes": null
+      },
+      {
+        "name": "Unsalted butter",
+        "amount": "1",
+        "unit": "tablespoon (15ml)",
+        "notes": null
+      },
+      {
+        "name": "Garlic, minced",
+        "amount": "4",
+        "unit": "cloves",
+        "notes": null
+      },
+      {
+        "name": "Honey",
+        "amount": "1/3",
+        "unit": "cup (110g)",
+        "notes": null
+      },
+      {
+        "name": "Chicken stock",
+        "amount": "1/3",
+        "unit": "cup (80ml)",
+        "notes": null
+      },
+      {
+        "name": "Rice vinegar",
+        "amount": "1",
+        "unit": "tablespoon (15ml)",
+        "notes": null
+      },
+      {
+        "name": "Light soy sauce",
+        "amount": "1",
+        "unit": "tablespoon (15ml)",
+        "notes": null
+      },
+      {
+        "name": "Fresh parsley",
+        "amount": "1",
+        "unit": "tablespoon (15ml)",
+        "notes": "finely chopped"
+      },
+      {
+        "name": "Chilli flakes",
+        "amount": "1/2",
+        "unit": "teaspoon (2.5ml)",
+        "notes": null
+      },
+      {
+        "name": "Boiled rice",
+        "amount": "",
+        "unit": null,
+        "notes": "to serve"
+      }
+    ],
+    "steps": [
+      "Place the chicken thighs in a bowl and add the cornflour, salt and pepper. Toss the chicken until fully coated.",
+      "Heat the oil in a large frying pan over high heat.",
+      "Add the chicken thighs and cook on one side until golden brown, about 4 to 5 minutes, then turn over and cook for a further 2 minutes.",
+      "Add the butter to the pan, let it melt, then add the garlic and stir together. Turn the heat down to medium so the garlic does not burn, then make the sauce.",
+      "Combine the honey, stock, rice vinegar and light soy sauce in a bowl and stir together.",
+      "Add the sauce to the pan. Turn the heat up and bring to the boil, then simmer for 4 to 5 minutes, until the sauce reduces and thickens and the chicken is cooked through.",
+      "Sprinkle on the chopped parsley and chilli flakes and serve over boiled rice."
+    ]
+  }
+]
